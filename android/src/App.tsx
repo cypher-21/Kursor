@@ -40,6 +40,28 @@ export function App() {
     localStorage.setItem('mousely_haptics', hapticsEnabled ? 'true' : 'false');
   }, [hapticsEnabled]);
 
+  // PWA Installation prompt
+  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+
+  useEffect(() => {
+    const handleBeforeInstall = (e: any) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+    };
+    window.addEventListener('beforeinstallprompt', handleBeforeInstall);
+    return () => window.removeEventListener('beforeinstallprompt', handleBeforeInstall);
+  }, []);
+
+  const handleInstallApp = async () => {
+    if (deferredPrompt) {
+      deferredPrompt.prompt();
+      const { outcome } = await deferredPrompt.userChoice;
+      if (outcome === 'accepted') {
+        setDeferredPrompt(null);
+      }
+    }
+  };
+
   const haptics = useHaptics(hapticsEnabled);
 
   // Socket communication
@@ -53,6 +75,8 @@ export function App() {
         serverName={socket.serverName}
         latency={socket.latency}
         status={socket.systemStatus}
+        canInstall={Boolean(deferredPrompt)}
+        onInstall={handleInstallApp}
         onOpenConnect={() => setShowConnectModal(true)}
         onOpenSettings={() => setShowSettingsModal(true)}
       />

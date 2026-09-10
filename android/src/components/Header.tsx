@@ -1,5 +1,5 @@
 import React from 'react';
-import { Wifi, WifiOff, Settings, Battery, BatteryCharging, Zap } from 'lucide-react';
+import { Wifi, WifiOff, Settings, Battery, BatteryCharging, Zap, Download } from 'lucide-react';
 import type { SystemStatus } from '../hooks/useSocket';
 
 interface HeaderProps {
@@ -7,6 +7,8 @@ interface HeaderProps {
   serverName: string;
   latency: number | null;
   status: SystemStatus;
+  canInstall?: boolean;
+  onInstall?: () => void;
   onOpenConnect: () => void;
   onOpenSettings: () => void;
 }
@@ -16,6 +18,8 @@ export const Header: React.FC<HeaderProps> = ({
   serverName,
   latency,
   status,
+  canInstall,
+  onInstall,
   onOpenConnect,
   onOpenSettings,
 }) => {
@@ -60,6 +64,25 @@ export const Header: React.FC<HeaderProps> = ({
             {status.charging ? <BatteryCharging size={13} color="#10b981" /> : <Battery size={13} />}
             <span>{status.battery}%</span>
           </div>
+        )}
+
+        {/* Install Native PWA Button */}
+        {canInstall && onInstall && (
+          <button
+            className="status-badge"
+            style={{
+              cursor: 'pointer',
+              background: 'rgba(59, 130, 246, 0.2)',
+              borderColor: '#3b82f6',
+              color: '#60a5fa',
+              fontWeight: 600,
+            }}
+            onClick={onInstall}
+            title="Install Mousely on your Android device"
+          >
+            <Download size={13} />
+            <span>Install</span>
+          </button>
         )}
 
         {/* Settings Button */}
