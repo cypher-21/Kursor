@@ -1,8 +1,8 @@
 @echo off
-title Mousely Desktop Server
-cd /d "%~dp0linux-server"
+title Kursor Desktop Server
+cd /d "%~dp0server"
 echo ==============================================
-echo       Mousely Desktop Server (Windows/Linux)
+echo       Kursor Desktop Server (Windows/Linux)
 echo ==============================================
 python -m pip install -r requirements.txt --quiet
 python main.py

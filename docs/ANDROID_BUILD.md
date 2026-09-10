@@ -1,22 +1,22 @@
-# Mousely for Android - Build & Deployment Guide
+# Kursor for Android - Build & Deployment Guide
 
-Mousely for Android offers **two deployment methods**:
-1. **Instant Web Remote / PWA (Zero Install)**: Open directly in your Android phone's browser (Chrome, Firefox, Samsung Internet) or tap "Add to Home Screen" for a full-screen standalone experience with haptic vibration and offline caching.
+Kursor for Android offers **two deployment methods**:
+1. **Instant Web Remote / PWA (Zero Install)**: Open directly in your Android phone's browser (Chrome, Firefox, Samsung Internet) or tap "Add to Home screen" for a full-screen standalone experience with haptic vibration and offline caching.
 2. **Native Android APK (Capacitor / Gradle)**: Build a standalone `.apk` or `.aab` package with Android Studio or the command line.
 
 ---
 
 ## Method 1: Instant PWA / Web Remote (Zero Installation)
 
-1. Start the Mousely server on your Linux computer:
+1. Start the Kursor server on your computer:
    ```bash
-   python3 main.py
+   python main.py
    ```
 2. Make sure your Android phone is connected to the same Wi-Fi network (or phone hotspot).
 3. Scan the QR code displayed on your computer monitor or terminal using your phone camera.
 4. **Install as App**:
-   - In Chrome on Android: Tap the `⋮` menu button > tap **"Add to Home screen"** or **"Install app"**.
-   - The Mousely icon will appear on your phone's home screen and launch like a native application with fullscreen display and zero browser address bars!
+   - In Chrome on Android: Tap the three dots menu button > tap **"Add to Home screen"** or **"Install app"**.
+   - The Kursor icon will appear on your phone's home screen and launch like a native application with fullscreen display and zero browser address bars.
 
 ---
 

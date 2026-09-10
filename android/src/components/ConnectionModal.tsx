@@ -42,11 +42,11 @@ export const ConnectionModal: React.FC<ConnectionModalProps> = ({
       <div className="modal-content" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <Monitor size={20} color="#3b82f6" />
-            <h3 className="modal-title">Connect to Linux PC</h3>
+            <Monitor size={18} />
+            <h3 className="modal-title">Connect to Computer</h3>
           </div>
-          <button className="icon-button" style={{ width: '32px', height: '32px' }} onClick={onClose}>
-            <X size={16} />
+          <button className="icon-button" style={{ width: '30px', height: '30px' }} onClick={onClose}>
+            <X size={15} />
           </button>
         </div>
 
@@ -55,8 +55,8 @@ export const ConnectionModal: React.FC<ConnectionModalProps> = ({
           style={{
             padding: '12px',
             borderRadius: 'var(--radius-md)',
-            background: connected ? 'rgba(16, 185, 129, 0.1)' : 'rgba(239, 68, 68, 0.1)',
-            border: `1px solid ${connected ? 'rgba(16, 185, 129, 0.3)' : 'rgba(239, 68, 68, 0.3)'}`,
+            background: connected ? 'rgba(16, 185, 129, 0.08)' : 'rgba(239, 68, 68, 0.08)',
+            border: `1px solid ${connected ? 'rgba(16, 185, 129, 0.25)' : 'rgba(239, 68, 68, 0.25)'}`,
             display: 'flex',
             alignItems: 'center',
             gap: '10px',
@@ -67,8 +67,8 @@ export const ConnectionModal: React.FC<ConnectionModalProps> = ({
             <div style={{ fontSize: '0.85rem', fontWeight: 600, color: connected ? '#34d399' : '#f87171' }}>
               {connected ? `Connected: ${serverName}` : 'No Active Connection'}
             </div>
-            <div style={{ fontSize: '0.72rem', color: '#94a3b8' }}>
-              {connected ? `ws://${currentHost}:${currentPort}` : 'Enter your PC local IP below'}
+            <div style={{ fontSize: '0.72rem', color: 'var(--text-secondary)' }}>
+              {connected ? `ws://${currentHost}:${currentPort}` : 'Enter your computer local IP below'}
             </div>
           </div>
         </div>
@@ -76,7 +76,7 @@ export const ConnectionModal: React.FC<ConnectionModalProps> = ({
         {/* Form Inputs */}
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
           <div>
-            <label style={{ fontSize: '0.78rem', color: '#94a3b8', marginBottom: '6px', display: 'block' }}>
+            <label style={{ fontSize: '0.76rem', color: 'var(--text-secondary)', marginBottom: '6px', display: 'block' }}>
               Host IP Address or Domain
             </label>
             <input
@@ -90,7 +90,7 @@ export const ConnectionModal: React.FC<ConnectionModalProps> = ({
           </div>
 
           <div>
-            <label style={{ fontSize: '0.78rem', color: '#94a3b8', marginBottom: '6px', display: 'block' }}>
+            <label style={{ fontSize: '0.76rem', color: 'var(--text-secondary)', marginBottom: '6px', display: 'block' }}>
               Port
             </label>
             <input
@@ -103,8 +103,8 @@ export const ConnectionModal: React.FC<ConnectionModalProps> = ({
             />
           </div>
 
-          <div style={{ fontSize: '0.72rem', color: '#64748b', lineHeight: 1.4 }}>
-            💡 <strong>Tip:</strong> Make sure your phone and Linux PC are on the same Wi-Fi network. You can also scan the QR code displayed in the Linux receiver window.
+          <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', lineHeight: 1.4 }}>
+            Ensure your phone and computer are on the same Wi-Fi network. You can scan the QR code displayed in the Kursor terminal or GUI.
           </div>
 
           <button type="submit" className="primary-button">

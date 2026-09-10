@@ -16,9 +16,9 @@ except ImportError:
 from .config import load_config, save_config
 from .discovery import get_local_ips
 
-class MouselyGUI:
+class KursorGUI:
     """
-    Desktop Pairing & Settings Window for Mousely Linux.
+    Desktop Pairing & Settings Window for Kursor (Windows & Linux).
     Displays QR Code for instant phone camera pairing and allows tuning controls.
     """
 
@@ -32,7 +32,7 @@ class MouselyGUI:
 
     def start(self):
         self.root = tk.Tk()
-        self.root.title("Mousely Desktop")
+        self.root.title("Kursor Desktop")
         self.root.geometry("460x620")
         self.root.resizable(False, False)
 
@@ -155,3 +155,6 @@ class MouselyGUI:
     def _on_sens_change(self, val):
         self.config["mouse_sensitivity"] = float(val)
         save_config(self.config)
+
+# Backward compatibility
+MouselyGUI = KursorGUI

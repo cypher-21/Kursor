@@ -29,6 +29,14 @@ KEY_MAP = {
     "tab": "KEY_TAB",
     "space": "KEY_SPACE",
     "super": "KEY_LEFTMETA",
+    "win": "KEY_LEFTMETA",
+    "ctrl": "KEY_LEFTCTRL",
+    "alt": "KEY_LEFTALT",
+    "shift": "KEY_LEFTSHIFT",
+    "delete": "KEY_DELETE",
+    "del": "KEY_DELETE",
+    "home": "KEY_HOME",
+    "end": "KEY_END",
     "volume_up": "KEY_VOLUMEUP",
     "volume_down": "KEY_VOLUMEDOWN",
     "mute": "KEY_MUTE",
@@ -136,6 +144,63 @@ class UInputBackend(InputBackend):
 
     def press_key(self, key_name: str) -> None:
         norm = key_name.lower().strip()
+
+        # Compound shortcut handling
+        if norm in ("ctrl_c", "ctrl+c"):
+            self.device.write(e.EV_KEY, e.KEY_LEFTCTRL, 1)
+            self.device.write(e.EV_KEY, e.KEY_C, 1)
+            self.device.syn()
+            time.sleep(0.02)
+            self.device.write(e.EV_KEY, e.KEY_C, 0)
+            self.device.write(e.EV_KEY, e.KEY_LEFTCTRL, 0)
+            self.device.syn()
+            return
+        elif norm in ("ctrl_v", "ctrl+v"):
+            self.device.write(e.EV_KEY, e.KEY_LEFTCTRL, 1)
+            self.device.write(e.EV_KEY, e.KEY_V, 1)
+            self.device.syn()
+            time.sleep(0.02)
+            self.device.write(e.EV_KEY, e.KEY_V, 0)
+            self.device.write(e.EV_KEY, e.KEY_LEFTCTRL, 0)
+            self.device.syn()
+            return
+        elif norm in ("ctrl_z", "ctrl+z"):
+            self.device.write(e.EV_KEY, e.KEY_LEFTCTRL, 1)
+            self.device.write(e.EV_KEY, e.KEY_Z, 1)
+            self.device.syn()
+            time.sleep(0.02)
+            self.device.write(e.EV_KEY, e.KEY_Z, 0)
+            self.device.write(e.EV_KEY, e.KEY_LEFTCTRL, 0)
+            self.device.syn()
+            return
+        elif norm in ("ctrl_a", "ctrl+a"):
+            self.device.write(e.EV_KEY, e.KEY_LEFTCTRL, 1)
+            self.device.write(e.EV_KEY, e.KEY_A, 1)
+            self.device.syn()
+            time.sleep(0.02)
+            self.device.write(e.EV_KEY, e.KEY_A, 0)
+            self.device.write(e.EV_KEY, e.KEY_LEFTCTRL, 0)
+            self.device.syn()
+            return
+        elif norm in ("ctrl_w", "ctrl+w"):
+            self.device.write(e.EV_KEY, e.KEY_LEFTCTRL, 1)
+            self.device.write(e.EV_KEY, e.KEY_W, 1)
+            self.device.syn()
+            time.sleep(0.02)
+            self.device.write(e.EV_KEY, e.KEY_W, 0)
+            self.device.write(e.EV_KEY, e.KEY_LEFTCTRL, 0)
+            self.device.syn()
+            return
+        elif norm in ("alt_f4", "alt+f4"):
+            self.device.write(e.EV_KEY, e.KEY_LEFTALT, 1)
+            self.device.write(e.EV_KEY, e.KEY_F4, 1)
+            self.device.syn()
+            time.sleep(0.02)
+            self.device.write(e.EV_KEY, e.KEY_F4, 0)
+            self.device.write(e.EV_KEY, e.KEY_LEFTALT, 0)
+            self.device.syn()
+            return
+
         code_name = KEY_MAP.get(norm)
         if not code_name and hasattr(e, f"KEY_{norm.upper()}"):
             code_name = f"KEY_{norm.upper()}"

@@ -78,6 +78,39 @@ class X11Backend(InputBackend):
 
     def press_key(self, key_name: str) -> None:
         norm = key_name.lower().strip()
+
+        # Compound shortcut handling
+        if norm in ("ctrl_c", "ctrl+c"):
+            with self.keyboard.pressed(Key.ctrl):
+                self.keyboard.press('c')
+                self.keyboard.release('c')
+            return
+        elif norm in ("ctrl_v", "ctrl+v"):
+            with self.keyboard.pressed(Key.ctrl):
+                self.keyboard.press('v')
+                self.keyboard.release('v')
+            return
+        elif norm in ("ctrl_z", "ctrl+z"):
+            with self.keyboard.pressed(Key.ctrl):
+                self.keyboard.press('z')
+                self.keyboard.release('z')
+            return
+        elif norm in ("ctrl_a", "ctrl+a"):
+            with self.keyboard.pressed(Key.ctrl):
+                self.keyboard.press('a')
+                self.keyboard.release('a')
+            return
+        elif norm in ("ctrl_w", "ctrl+w"):
+            with self.keyboard.pressed(Key.ctrl):
+                self.keyboard.press('w')
+                self.keyboard.release('w')
+            return
+        elif norm in ("alt_f4", "alt+f4"):
+            with self.keyboard.pressed(Key.alt):
+                self.keyboard.press(Key.f4)
+                self.keyboard.release(Key.f4)
+            return
+
         key_map = {
             "page_down": Key.page_down,
             "pagedown": Key.page_down,
@@ -95,6 +128,14 @@ class X11Backend(InputBackend):
             "tab": Key.tab,
             "space": Key.space,
             "super": Key.cmd,
+            "win": Key.cmd,
+            "ctrl": Key.ctrl,
+            "alt": Key.alt,
+            "shift": Key.shift,
+            "delete": Key.delete,
+            "del": Key.delete,
+            "home": Key.home,
+            "end": Key.end,
             "b": 'b',
             "w": 'w',
             "volume_up": Key.media_volume_up,
@@ -107,11 +148,11 @@ class X11Backend(InputBackend):
         k = key_map.get(norm)
         if k:
             self.keyboard.press(k)
-            time.sleep(0.01)
+            time.sleep(0.015)
             self.keyboard.release(k)
         elif len(norm) == 1:
             self.keyboard.press(norm)
-            time.sleep(0.01)
+            time.sleep(0.015)
             self.keyboard.release(norm)
 
     def type_text(self, text: str) -> None:

@@ -1,10 +1,7 @@
 #!/usr/bin/env python3
 """
-Mousely for Linux - Universal Receiver & Daemon
-Usage:
-    python main.py             # Start server with GUI if display available
-    python main.py --cli       # Run headless daemon in terminal
-    python main.py --port 8765 # Custom port
+Kursor Desktop Server (Windows & Linux)
+Universal Wireless Trackpad & Presentation Receiver
 """
 
 import sys
@@ -18,9 +15,9 @@ from pathlib import Path
 # Add project root to sys.path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-from mousely.server import MouselyServer
-from mousely.discovery import get_local_ips
-from mousely.config import load_config
+from kursor.server import KursorServer
+from kursor.discovery import get_local_ips
+from kursor.config import load_config
 
 if hasattr(sys.stdout, "reconfigure"):
     try:
@@ -33,19 +30,19 @@ def print_terminal_qr(url: str):
     qr = qrcode.QRCode(border=1)
     qr.add_data(url)
     qr.make(fit=True)
-    print("\n  Scan with your phone camera to connect:")
-    print("  " + "-" * 40)
+    print("\n  Scan with phone camera to connect:")
+    print("  " + "-" * 42)
     try:
         qr.print_ascii(invert=True)
     except Exception:
         print(f"  Connect URL: {url}")
-    print("  " + "-" * 40)
+    print("  " + "-" * 42)
 
 def main():
-    parser = argparse.ArgumentParser(description="Mousely Linux Server")
-    parser.add_argument("--port", type=int, default=8765, help="HTTP/WebSocket port (default: 8765)")
-    parser.add_argument("--cli", action="store_true", help="Run in headless terminal mode (no GUI)")
-    parser.add_argument("--gui", action="store_true", help="Force GUI window")
+    parser = argparse.ArgumentParser(description="Kursor Desktop Server")
+    parser.add_argument("--port", type=int, default=8765, help="Port to listen on (default: 8765)")
+    parser.add_argument("--cli", action="store_true", help="Run headless in terminal mode (no GUI)")
+    parser.add_argument("--gui", action="store_true", help="Force GUI pairing window")
     parser.add_argument("--static", type=str, default=None, help="Path to static web assets directory")
     args = parser.parse_args()
 
@@ -54,16 +51,15 @@ def main():
     pairing_url = f"http://{primary_ip}:{args.port}"
 
     print(r"""
-  __  __                       _       
- |  \/  | ___  _   _ ___  ___ | |_   _ 
- | |\/| |/ _ \| | | / __|/ _ \| | | | |
- | |  | | (_) | |_| \__ \  __/| | |_| |
- |_|  |_|\___/ \__,_|___/\___||_|\__, |
-                                  |___/  (Linux Edition)
+  _  ___   _ ____  ____   ___  ____  
+ | |/ / | | |  _ \/ ___| / _ \|  _ \ 
+ | ' /| | | | |_) \___ \| | | | |_) |
+ | . \| |_| |  _ < ___) | |_| |  _ < 
+ |_|\_\\___/|_| \_\____/ \___/|_| \_\ 
     """)
-    print(f"  * Receiver Status : Listening on port {args.port}")
-    print(f"  * Local Web Link  : {pairing_url}")
-    print(f"  * All Host IPs    : {', '.join(ips)}")
+    print(f"  * Status       : Listening on port {args.port}")
+    print(f"  * Network URL  : {pairing_url}")
+    print(f"  * Host IP list : {', '.join(ips)}")
 
     # Print ASCII QR code in terminal
     try:
@@ -77,14 +73,14 @@ def main():
 
     if start_gui:
         try:
-            from mousely.gui import MouselyGUI
-            gui_app = MouselyGUI(port=args.port)
+            from kursor.gui import KursorGUI
+            gui_app = KursorGUI(port=args.port)
 
             # Run server in asyncio background thread
             def run_server():
                 loop = asyncio.new_event_loop()
                 asyncio.set_event_loop(loop)
-                server = MouselyServer(port=args.port, static_dir=args.static)
+                server = KursorServer(port=args.port, static_dir=args.static)
                 loop.run_until_complete(server.start())
                 loop.run_forever()
 
@@ -95,17 +91,17 @@ def main():
             gui_app.start()
             return
         except Exception as e:
-            print(f"[Mousely] GUI closed or skipped: {e}. Running in CLI mode.")
+            print(f"[Kursor] GUI closed or skipped: {e}. Running in CLI mode.")
 
     # Headless CLI loop
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
-    server = MouselyServer(port=args.port, static_dir=args.static)
+    server = KursorServer(port=args.port, static_dir=args.static)
     loop.run_until_complete(server.start())
     try:
         loop.run_forever()
     except KeyboardInterrupt:
-        print("\n[Mousely] Server shutting down cleanly...")
+        print("\n[Kursor] Server shutting down cleanly...")
 
 if __name__ == "__main__":
     main()

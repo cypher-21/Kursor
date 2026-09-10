@@ -1,5 +1,5 @@
 import React from 'react';
-import { Wifi, WifiOff, Settings, Battery, BatteryCharging, Zap, Download } from 'lucide-react';
+import { Wifi, WifiOff, Settings, Battery, BatteryCharging, Zap, Download, Maximize2, Minimize2 } from 'lucide-react';
 import type { SystemStatus } from '../hooks/useSocket';
 
 interface HeaderProps {
@@ -11,6 +11,8 @@ interface HeaderProps {
   onInstall?: () => void;
   onOpenConnect: () => void;
   onOpenSettings: () => void;
+  isFullscreen?: boolean;
+  onToggleFullscreen?: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -22,22 +24,24 @@ export const Header: React.FC<HeaderProps> = ({
   onInstall,
   onOpenConnect,
   onOpenSettings,
+  isFullscreen,
+  onToggleFullscreen,
 }) => {
   return (
     <header className="app-header">
       <div className="brand-section">
-        <div className="brand-logo">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+        <div className="brand-logo" title="Kursor">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#000000" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
             <rect x="5" y="2" width="14" height="20" rx="7" />
             <path d="M12 6v4" />
           </svg>
         </div>
         <div>
-          <div className="brand-name">Mousely</div>
+          <div className="brand-name">Kursor</div>
         </div>
       </div>
 
-      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
         {/* Connection status pill */}
         <button
           onClick={onOpenConnect}
@@ -50,20 +54,32 @@ export const Header: React.FC<HeaderProps> = ({
           {connected ? <Wifi size={12} /> : <WifiOff size={12} />}
         </button>
 
-        {/* Latency */}
+        {/* Latency badge */}
         {connected && latency !== null && (
-          <div className="status-badge" style={{ color: '#00f0ff', borderColor: 'rgba(0, 240, 255, 0.25)' }}>
-            <Zap size={11} style={{ fill: '#00f0ff' }} />
+          <div className="status-badge" style={{ color: '#a1a1aa' }}>
+            <Zap size={11} />
             <span>{latency}ms</span>
           </div>
         )}
 
         {/* Host Laptop Battery */}
         {status.battery !== null && (
-          <div className="status-badge" style={{ color: '#94a3b8' }}>
+          <div className="status-badge" style={{ color: '#a1a1aa' }}>
             {status.charging ? <BatteryCharging size={13} color="#10b981" /> : <Battery size={13} />}
             <span>{status.battery}%</span>
           </div>
+        )}
+
+        {/* Fullscreen Toggle */}
+        {onToggleFullscreen && (
+          <button
+            className="icon-button"
+            style={{ width: '32px', height: '32px' }}
+            onClick={onToggleFullscreen}
+            title={isFullscreen ? 'Exit Fullscreen' : 'Fullscreen Trackpad'}
+          >
+            {isFullscreen ? <Minimize2 size={15} /> : <Maximize2 size={15} />}
+          </button>
         )}
 
         {/* Install Native PWA Button */}
@@ -72,15 +88,15 @@ export const Header: React.FC<HeaderProps> = ({
             className="status-badge"
             style={{
               cursor: 'pointer',
-              background: 'rgba(59, 130, 246, 0.2)',
-              borderColor: '#3b82f6',
-              color: '#60a5fa',
-              fontWeight: 600,
+              background: 'rgba(255, 255, 255, 0.08)',
+              borderColor: 'rgba(255, 255, 255, 0.18)',
+              color: '#ffffff',
+              fontWeight: 500,
             }}
             onClick={onInstall}
-            title="Install Mousely on your Android device"
+            title="Install Kursor on your device"
           >
-            <Download size={13} />
+            <Download size={12} />
             <span>Install</span>
           </button>
         )}
@@ -88,11 +104,11 @@ export const Header: React.FC<HeaderProps> = ({
         {/* Settings Button */}
         <button
           className="icon-button"
-          style={{ width: '34px', height: '34px', borderRadius: '10px' }}
+          style={{ width: '32px', height: '32px' }}
           onClick={onOpenSettings}
           title="Settings"
         >
-          <Settings size={16} />
+          <Settings size={15} />
         </button>
       </div>
     </header>

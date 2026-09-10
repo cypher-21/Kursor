@@ -1,6 +1,6 @@
-# Mousely for Linux - Setup Guide
+# Kursor for Linux - Setup Guide
 
-This guide covers installing and configuring the Mousely receiver on Linux.
+This guide covers installing and configuring the Kursor receiver on Linux.
 
 ## Requirements
 
@@ -15,8 +15,8 @@ This guide covers installing and configuring the Mousely receiver on Linux.
 Run the provided installer script to set up system packages, Python requirements, and kernel permissions in one step:
 
 ```bash
-cd linux-server
-chmod +x install.sh setup-uinput.sh
+cd server
+chmod +x install.sh setup-uinput.sh start-linux.sh
 ./install.sh
 ```
 
@@ -24,19 +24,19 @@ chmod +x install.sh setup-uinput.sh
 
 ## 2. Kernel `/dev/uinput` Permissions (Non-Root)
 
-Mousely injects input events through the Linux kernel's `/dev/uinput` interface. This enables seamless support across both Wayland and X11 without requiring root permissions during runtime.
+Kursor injects input events through the Linux kernel's `/dev/uinput` interface. This enables seamless support across both Wayland and X11 without requiring root permissions during runtime.
 
 If you did not run `install.sh`, configure permissions manually:
 
 ```bash
-cd linux-server
+cd server
 chmod +x setup-uinput.sh
 ./setup-uinput.sh
 ```
 
 This script:
 1. Loads the `uinput` kernel module (`sudo modprobe uinput`).
-2. Creates `/etc/udev/rules.d/99-mousely-uinput.rules`:
+2. Creates `/etc/udev/rules.d/99-kursor-uinput.rules`:
    ```udev
    KERNEL=="uinput", GROUP="input", MODE="0660", OPTIONS+="static_node=uinput"
    ```
@@ -55,7 +55,7 @@ This script:
 python3 main.py
 ```
 This opens the desktop window showing:
-- High-contrast QR code for instant camera scanning from your phone.
+- High-contrast QR code for camera scanning from your phone.
 - Active IP address and listening port.
 - Connected phone status and pointer speed sliders.
 
@@ -64,7 +64,7 @@ This opens the desktop window showing:
 ```bash
 python3 main.py --cli
 ```
-This prints an ASCII QR code directly into your terminal—ideal for SSH sessions, Raspberry Pi, or media PCs!
+This prints an ASCII QR code directly into your terminal—ideal for SSH sessions, Raspberry Pi, or media PCs.
 
 ### Custom Port
 
@@ -76,23 +76,23 @@ python3 main.py --port 9000
 
 ## 4. Systemd Autostart Service
 
-To have Mousely start automatically when you log into your Linux desktop:
+To have Kursor start automatically when you log into your Linux desktop:
 
 ```bash
 mkdir -p ~/.config/systemd/user
-cp mousely-linux.service ~/.config/systemd/user/
+cp server/kursor.service ~/.config/systemd/user/
 systemctl --user daemon-reload
-systemctl --user enable --now mousely-linux
+systemctl --user enable --now kursor
 ```
 
 Check service status:
 ```bash
-systemctl --user status mousely-linux
+systemctl --user status kursor
 ```
 
 View live logs:
 ```bash
-journalctl --user -u mousely-linux -f
+journalctl --user -u kursor -f
 ```
 
 ---
@@ -103,6 +103,7 @@ journalctl --user -u mousely-linux -f
 |---|---|---|
 | Cursor movement | Supported via `/dev/uinput` | Supported via `/dev/uinput` & `pynput` |
 | Multi-touch scrolling | Supported | Supported |
+| Real-time live keyboard | Supported | Supported |
 | Presentation keys (F5, Esc, PageDown) | Supported | Supported |
 | Desktop gestures (Overview, Show Desktop) | Supported (Super, Super+D) | Supported |
 | Digital laser pointer overlay | Supported | Supported |

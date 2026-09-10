@@ -6,7 +6,7 @@ import {
   Pause,
   RotateCcw,
   Maximize2,
-  Flame,
+  Crosshair,
   Compass,
   Sparkles,
 } from 'lucide-react';
@@ -81,13 +81,13 @@ export const Presenter: React.FC<PresenterProps> = ({ onAction, onLaser }) => {
       {/* Stopwatch Timer Card */}
       <div className="timer-card">
         <div>
-          <div style={{ fontSize: '0.72rem', textTransform: 'uppercase', color: '#94a3b8', letterSpacing: '0.8px' }}>
+          <div style={{ fontSize: '0.7rem', textTransform: 'uppercase', color: 'var(--text-muted)', letterSpacing: '0.6px' }}>
             Presentation Time
           </div>
           <div className="timer-digits">{formatTime(seconds)}</div>
         </div>
 
-        <div className="timer-controls">
+        <div className="timer-controls" style={{ display: 'flex', gap: '8px' }}>
           <button
             className="icon-button"
             onClick={() => {
@@ -96,7 +96,7 @@ export const Presenter: React.FC<PresenterProps> = ({ onAction, onLaser }) => {
             }}
             title={timerRunning ? 'Pause' : 'Start'}
           >
-            {timerRunning ? <Pause size={18} /> : <Play size={18} />}
+            {timerRunning ? <Pause size={16} /> : <Play size={16} />}
           </button>
           <button
             className="icon-button"
@@ -107,7 +107,7 @@ export const Presenter: React.FC<PresenterProps> = ({ onAction, onLaser }) => {
             }}
             title="Reset"
           >
-            <RotateCcw size={18} />
+            <RotateCcw size={16} />
           </button>
         </div>
       </div>
@@ -123,11 +123,11 @@ export const Presenter: React.FC<PresenterProps> = ({ onAction, onLaser }) => {
               onAction('prev');
             }}
           >
-            <ChevronLeft size={52} strokeWidth={2.5} color="#94a3b8" />
-            <span className="slide-btn-label" style={{ color: '#cbd5e1' }}>
+            <ChevronLeft size={44} strokeWidth={2} color="var(--text-secondary)" />
+            <span className="slide-btn-label" style={{ color: 'var(--text-primary)' }}>
               Previous
             </span>
-            <span style={{ fontSize: '0.75rem', color: '#64748b' }}>Page Up</span>
+            <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>Page Up</span>
           </button>
 
           {/* Next Slide Button (Dominant) */}
@@ -138,11 +138,11 @@ export const Presenter: React.FC<PresenterProps> = ({ onAction, onLaser }) => {
               onAction('next');
             }}
           >
-            <ChevronRight size={56} strokeWidth={3} color="#00f0ff" />
+            <ChevronRight size={44} strokeWidth={2.4} color="#ffffff" />
             <span className="slide-btn-label" style={{ color: '#ffffff' }}>
               Next Slide
             </span>
-            <span style={{ fontSize: '0.75rem', color: '#38bdf8' }}>Page Down</span>
+            <span style={{ fontSize: '0.72rem', color: 'var(--text-secondary)' }}>Page Down</span>
           </button>
         </div>
 
@@ -150,12 +150,10 @@ export const Presenter: React.FC<PresenterProps> = ({ onAction, onLaser }) => {
         <div
           ref={laserPadRef}
           style={{
-            height: '110px',
+            height: '96px',
             borderRadius: 'var(--radius-lg)',
-            border: laserActive ? '1.5px solid #ff2a5f' : '1px dashed var(--border-subtle)',
-            background: laserActive
-              ? 'radial-gradient(circle at 50% 50%, rgba(255, 42, 95, 0.12) 0%, rgba(15, 16, 26, 0.9) 100%)'
-              : 'rgba(19, 20, 29, 0.5)',
+            border: laserActive ? '1px solid rgba(255, 255, 255, 0.4)' : '1px dashed var(--border-subtle)',
+            background: laserActive ? 'rgba(255, 255, 255, 0.05)' : 'var(--bg-surface)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
@@ -163,35 +161,34 @@ export const Presenter: React.FC<PresenterProps> = ({ onAction, onLaser }) => {
             gap: '6px',
             position: 'relative',
             touchAction: 'none',
-            boxShadow: laserActive ? '0 0 25px rgba(255, 42, 95, 0.25)' : 'none',
-            transition: 'all 0.2s ease',
+            transition: 'all 0.15s ease',
           }}
           onTouchMove={handleLaserTouchMove}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <Flame size={20} color={laserActive ? '#ff2a5f' : '#64748b'} />
+            <Crosshair size={18} color={laserActive ? '#ffffff' : 'var(--text-muted)'} />
             <span
               style={{
                 fontWeight: 600,
-                fontSize: '0.9rem',
-                color: laserActive ? '#ff2a5f' : '#94a3b8',
+                fontSize: '0.86rem',
+                color: laserActive ? '#ffffff' : 'var(--text-secondary)',
               }}
             >
               {laserActive ? (gyroActive ? 'Air-Mouse Active (Tilt Phone)' : 'Laser Pad (Drag to aim)') : 'Digital Pointer Off'}
             </span>
           </div>
-          <span style={{ fontSize: '0.72rem', color: '#64748b' }}>
-            {laserActive ? 'Pointer beam visible on presenter screen' : 'Tap Pointer button below to activate'}
+          <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
+            {laserActive ? 'Beam visible on presentation display' : 'Tap Pointer button below to activate'}
           </span>
         </div>
 
         {/* Secondary Presentation Tools */}
         <div className="presentation-quick-tools">
           <button
-            className={`tool-btn ${laserActive ? 'laser-active-btn' : ''}`}
+            className={`tool-btn ${laserActive ? 'active' : ''}`}
             onClick={toggleLaser}
           >
-            <Flame size={18} />
+            <Crosshair size={16} />
             <span>{laserActive ? 'Pointer ON' : 'Pointer'}</span>
           </button>
 
@@ -207,7 +204,7 @@ export const Presenter: React.FC<PresenterProps> = ({ onAction, onLaser }) => {
             }}
             title="Switch Pointer Style"
           >
-            <Sparkles size={18} />
+            <Sparkles size={16} />
             <span>{laserMode === 'laser' ? 'Dot' : 'Spotlight'}</span>
           </button>
 
@@ -221,7 +218,7 @@ export const Presenter: React.FC<PresenterProps> = ({ onAction, onLaser }) => {
               }
             }}
           >
-            <Compass size={18} />
+            <Compass size={16} />
             <span>Air-Mouse</span>
           </button>
 
@@ -233,7 +230,7 @@ export const Presenter: React.FC<PresenterProps> = ({ onAction, onLaser }) => {
             }}
             title="Start Slideshow (F5)"
           >
-            <Maximize2 size={18} />
+            <Maximize2 size={16} />
             <span>F5 Start</span>
           </button>
         </div>

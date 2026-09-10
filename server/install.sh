@@ -2,7 +2,7 @@
 set -e
 
 echo "=============================================="
-echo "   Mousely for Linux - Automated Installer    "
+echo "    Kursor Desktop Server - Linux Installer    "
 echo "=============================================="
 
 # Detect package manager
@@ -31,19 +31,19 @@ bash ./setup-uinput.sh
 # Create local launcher script
 mkdir -p "$HOME/.local/bin"
 SCRIPT_PATH="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-cat << EOF > "$HOME/.local/bin/mousely"
+cat << EOF > "$HOME/.local/bin/kursor"
 #!/usr/bin/env bash
 exec python3 "$SCRIPT_PATH/main.py" "\$@"
 EOF
-chmod +x "$HOME/.local/bin/mousely"
+chmod +x "$HOME/.local/bin/kursor"
 
 # Install Desktop Entry
 mkdir -p "$HOME/.local/share/applications"
-cat << EOF > "$HOME/.local/share/applications/mousely.desktop"
+cat << EOF > "$HOME/.local/share/applications/kursor.desktop"
 [Desktop Entry]
-Name=Mousely
-Comment=Remote trackpad & presentation receiver
-Exec=$HOME/.local/bin/mousely
+Name=Kursor
+Comment=Wireless trackpad & presentation receiver
+Exec=$HOME/.local/bin/kursor
 Icon=input-mouse
 Terminal=false
 Type=Application
@@ -52,7 +52,7 @@ EOF
 
 echo "[4/4] Installation finished successfully!"
 echo ""
-echo "To run Mousely:"
-echo "  1. Start directly: ~/.local/bin/mousely"
-echo "  2. Or run CLI daemon: ~/.local/bin/mousely --cli"
-echo "  3. Or launch 'Mousely' from your application menu!"
+echo "To run Kursor:"
+echo "  1. Start directly: ~/.local/bin/kursor"
+echo "  2. Or run CLI daemon: ~/.local/bin/kursor --cli"
+echo "  3. Or launch 'Kursor' from your application menu!"

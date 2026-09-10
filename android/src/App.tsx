@@ -13,31 +13,34 @@ export function App() {
   const [activeTab, setActiveTab] = useState<'trackpad' | 'presenter' | 'controls'>('trackpad');
   const [showConnectModal, setShowConnectModal] = useState(false);
   const [showSettingsModal, setShowSettingsModal] = useState(false);
+  const [isFullscreenTrackpad, setIsFullscreenTrackpad] = useState(false);
 
   // Settings
   const [sensitivity, setSensitivity] = useState<number>(() => {
-    const saved = localStorage.getItem('mousely_sensitivity');
+    const saved = localStorage.getItem('kursor_sensitivity') || localStorage.getItem('mousely_sensitivity');
     return saved ? parseFloat(saved) : 1.2;
   });
 
   const [invertScroll, setInvertScroll] = useState<boolean>(() => {
-    return localStorage.getItem('mousely_invert_scroll') === 'true';
+    const saved = localStorage.getItem('kursor_invert_scroll') || localStorage.getItem('mousely_invert_scroll');
+    return saved === 'true';
   });
 
   const [hapticsEnabled, setHapticsEnabled] = useState<boolean>(() => {
-    return localStorage.getItem('mousely_haptics') !== 'false';
+    const saved = localStorage.getItem('kursor_haptics') || localStorage.getItem('mousely_haptics');
+    return saved !== 'false';
   });
 
   useEffect(() => {
-    localStorage.setItem('mousely_sensitivity', sensitivity.toString());
+    localStorage.setItem('kursor_sensitivity', sensitivity.toString());
   }, [sensitivity]);
 
   useEffect(() => {
-    localStorage.setItem('mousely_invert_scroll', invertScroll ? 'true' : 'false');
+    localStorage.setItem('kursor_invert_scroll', invertScroll ? 'true' : 'false');
   }, [invertScroll]);
 
   useEffect(() => {
-    localStorage.setItem('mousely_haptics', hapticsEnabled ? 'true' : 'false');
+    localStorage.setItem('kursor_haptics', hapticsEnabled ? 'true' : 'false');
   }, [hapticsEnabled]);
 
   // PWA Installation prompt
@@ -67,55 +70,66 @@ export function App() {
   // Socket communication
   const socket = useSocket();
 
+  const toggleFullscreen = () => {
+    haptics.click();
+    setIsFullscreenTrackpad((prev) => !prev);
+  };
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', width: '100%', overflow: 'hidden' }}>
-      {/* Top Header */}
-      <Header
-        connected={socket.connected}
-        serverName={socket.serverName}
-        latency={socket.latency}
-        status={socket.systemStatus}
-        canInstall={Boolean(deferredPrompt)}
-        onInstall={handleInstallApp}
-        onOpenConnect={() => setShowConnectModal(true)}
-        onOpenSettings={() => setShowSettingsModal(true)}
-      />
+      {/* Top Header - hidden if fullscreen trackpad is active */}
+      {!isFullscreenTrackpad && (
+        <Header
+          connected={socket.connected}
+          serverName={socket.serverName}
+          latency={socket.latency}
+          status={socket.systemStatus}
+          canInstall={Boolean(deferredPrompt)}
+          onInstall={handleInstallApp}
+          onOpenConnect={() => setShowConnectModal(true)}
+          onOpenSettings={() => setShowSettingsModal(true)}
+          isFullscreen={isFullscreenTrackpad}
+          onToggleFullscreen={activeTab === 'trackpad' ? toggleFullscreen : undefined}
+        />
+      )}
 
-      {/* Navigation Mode Tabs */}
-      <nav className="nav-tab-container">
-        <button
-          className={`nav-tab ${activeTab === 'trackpad' ? 'active' : ''}`}
-          onClick={() => {
-            haptics.tick();
-            setActiveTab('trackpad');
-          }}
-        >
-          <MousePointer2 size={16} />
-          <span>Trackpad</span>
-        </button>
+      {/* Navigation Mode Tabs - hidden if fullscreen trackpad is active */}
+      {!isFullscreenTrackpad && (
+        <nav className="nav-tab-container">
+          <button
+            className={`nav-tab ${activeTab === 'trackpad' ? 'active' : ''}`}
+            onClick={() => {
+              haptics.tick();
+              setActiveTab('trackpad');
+            }}
+          >
+            <MousePointer2 size={15} />
+            <span>Trackpad</span>
+          </button>
 
-        <button
-          className={`nav-tab ${activeTab === 'presenter' ? 'active' : ''}`}
-          onClick={() => {
-            haptics.tick();
-            setActiveTab('presenter');
-          }}
-        >
-          <Presentation size={16} />
-          <span>Presenter</span>
-        </button>
+          <button
+            className={`nav-tab ${activeTab === 'presenter' ? 'active' : ''}`}
+            onClick={() => {
+              haptics.tick();
+              setActiveTab('presenter');
+            }}
+          >
+            <Presentation size={15} />
+            <span>Presenter</span>
+          </button>
 
-        <button
-          className={`nav-tab ${activeTab === 'controls' ? 'active' : ''}`}
-          onClick={() => {
-            haptics.tick();
-            setActiveTab('controls');
-          }}
-        >
-          <SlidersHorizontal size={16} />
-          <span>Controls</span>
-        </button>
-      </nav>
+          <button
+            className={`nav-tab ${activeTab === 'controls' ? 'active' : ''}`}
+            onClick={() => {
+              haptics.tick();
+              setActiveTab('controls');
+            }}
+          >
+            <SlidersHorizontal size={15} />
+            <span>Controls</span>
+          </button>
+        </nav>
+      )}
 
       {/* Main View Area */}
       <main style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0, overflow: 'hidden' }}>
@@ -127,23 +141,28 @@ export function App() {
             onGesture={socket.sendGesture}
             sensitivity={sensitivity}
             invertScroll={invertScroll}
+            isFullscreen={isFullscreenTrackpad}
+            onToggleFullscreen={toggleFullscreen}
           />
         )}
 
-        {activeTab === 'presenter' && (
+        {activeTab === 'presenter' && !isFullscreenTrackpad && (
           <Presenter
             onAction={socket.sendPresenter}
             onLaser={socket.sendLaser}
           />
         )}
 
-        {activeTab === 'controls' && (
+        {activeTab === 'controls' && !isFullscreenTrackpad && (
           <QuickControls
             status={socket.systemStatus}
             onMedia={socket.sendMedia}
             onDnd={socket.toggleDnd}
             onSendText={socket.sendText}
             onSendKey={socket.sendKey}
+            onLiveInput={socket.sendLiveInput}
+            onLiveBackspace={socket.sendLiveBackspace}
+            onLiveEnter={socket.sendLiveEnter}
           />
         )}
       </main>

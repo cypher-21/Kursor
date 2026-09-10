@@ -1,29 +1,29 @@
-# Mousely for Windows - Setup & Usage Guide
+# Kursor for Windows - Setup & Usage Guide
 
-Mousely supports Windows 10 & 11 natively out of the box using the same codebase.
+Kursor supports Windows 10 & 11 natively with direct Win32 API cursor injection (`user32.dll`) for minimal input latency.
 
 ---
 
-## 🚀 Quick Start on Windows
+## Quick Start on Windows
 
 ### Option 1: Double-Click Launcher
-Simply double-click [`start-windows.bat`](file:///c:/Users/paros/OneDrive/Desktop/mouse/start-windows.bat) in the project root directory.
+Double-click `start-windows.bat` in the repository root.
 
 ### Option 2: Command Line (PowerShell or Command Prompt)
 ```powershell
-cd linux-server
+cd server
 python -m pip install -r requirements.txt
 python main.py
 ```
 
 This will:
-1. Open the desktop pairing window with a large QR code.
+1. Open the desktop pairing window with a crisp QR code.
 2. Print the local IP link (`http://<your-ip>:8765`) and ASCII QR code in your console.
-3. Automatically broadcast on your Wi-Fi network so your Android phone auto-connects.
+3. Broadcast UDP discovery beacons on your LAN so your Android phone connects immediately.
 
 ---
 
-## 🎛️ Windows Key Mappings & Gestures
+## Windows Key Mappings & Gestures
 
 | Android Gesture / Action | Windows Shortcut Executed |
 |---|---|
@@ -40,3 +40,4 @@ This will:
 | **Black Screen** | Blank PowerPoint screen (`B`) |
 | **Volume Up / Down / Mute** | Windows system master volume |
 | **Media Play / Next / Prev** | Windows media player control |
+| **Live Keyboard** | Real-time keystrokes transmitted directly into active window |

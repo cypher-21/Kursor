@@ -1,77 +1,93 @@
-# Mousely for Linux, Windows & Android
+# Kursor - Wireless Trackpad & Presentation Remote
 
-<p align="center">
-  <strong>Turn your Android smartphone into a wireless trackpad, presentation remote, and media controller for your Linux or Windows PC.</strong>
-</p>
+Turn your Android smartphone into a high-precision wireless trackpad, presentation remote, and media controller for your Windows or Linux PC.
 
-<p align="center">
-  An open-source recreation of <a href="https://mouse.ly/">mouse.ly</a> engineered for <strong>Linux</strong> (Wayland & X11), <strong>Windows</strong> (10/11), and <strong>Android</strong>.
-</p>
+An open-source desktop control system engineered for **Windows** (10/11) and **Linux** (Wayland & X11) with a companion **Android** client (Web App & Native APK).
 
 ---
 
-## ✨ Features
+## Features
 
 - **Multi-Touch Trackpad**:
-  - **1-Finger Drag**: Silky-smooth cursor motion with natural acceleration.
-  - **1-Finger Tap**: Left-click with haptic vibration.
+  - **1-Finger Drag**: Smooth cursor motion with natural acceleration curves.
+  - **1-Finger Tap**: Left-click with instant haptic feedback.
   - **2-Finger Tap**: Right-click context menu.
-  - **2-Finger Drag & Edge Ribbon**: Smooth vertical & horizontal scroll wheel emulation.
+  - **2-Finger Drag & Edge Ribbon**: Precise vertical and horizontal scrolling.
+  - **Dedicated Fullscreen Mode**: 1-tap dedicated canvas mode utilizing 100% of your phone display in portrait or landscape.
   - **3-Finger Gestures**:
-    - Swipe Up: GNOME Overview / KDE Application Launcher (Super key).
-    - Swipe Down: Show Desktop (Super+D).
-    - Swipe Left / Right: Switch virtual workspaces.
-  - **Tactile Buttons**: Dedicated Left, Middle, and Right click buttons for thumb-friendly usage.
+    - Swipe Up: Task View / Overview (Super / Win key).
+    - Swipe Down: Show Desktop (Win+D / Super+D).
+    - Swipe Left / Right: Switch virtual desktops.
+  - **Tactile Buttons**: Dedicated Left, Middle, and Right click buttons.
+
+- **Real-Time Live Keyboard**:
+  - Direct live keystroke transmission from Android virtual keyboard (Gboard, Samsung Keyboard, etc.) and physical keyboards.
+  - Characters, backspaces, and enters transmit immediately without needing a separate submit button.
+  - Virtual PC modifier keys: Esc, Tab, Ctrl, Alt, Win, Del, arrow navigation keys, and common shortcuts (Ctrl+C, Ctrl+V, Ctrl+Z, Ctrl+A, Alt+F4).
+  - Bulk text paste option for transmitting complete messages or URLs.
+
 - **Presentation Remote**:
-  - Big, ergonomic **Next Slide** and **Previous Slide** buttons (`PageDown` / `PageUp`).
-  - Presentation stopwatch timer with pause and reset.
-  - Slideshow shortcuts: Start (`F5`), Exit (`Esc`), Black screen (`B`), White screen (`W`).
-  - **Digital Laser Pointer & Spotlight Overlay**: Real-time on-screen glowing laser reticle or dimming spotlight overlay.
-  - **Air-Mouse Mode**: Guide the laser pointer by tilting your phone using the device gyroscope!
-- **Quick Controls**:
-  - Master volume slider with mute toggle (`pactl` / `pamixer`).
-  - Media player deck: Previous, Play/Pause, Next (`playerctl` / MPRIS).
-  - Silence notifications toggle (Do Not Disturb).
-  - Virtual keyboard: Send typed text and system keys (`Enter`, `Backspace`, `Tab`, `Super`).
-- **Universal Linux Kernel Integration**:
-  - Uses native `/dev/uinput` kernel subsystem: Works on **both Wayland (GNOME, KDE Plasma, Sway, Hyprland) and X11** with zero display server dependency.
-  - Graceful fallback to `ydotool` and `pynput`.
-- **Instant Pairing**:
+  - Ergonomic Next Slide and Previous Slide buttons (PageDown / PageUp).
+  - Presentation stopwatch timer with pause and reset controls.
+  - Slideshow shortcuts: Start (F5), Exit (Esc), Blank screen (B/W).
+  - Digital Laser Pointer & Spotlight: On-screen real-time pointer reticle or spotlight overlay.
+  - Air-Mouse Mode: Control the pointer by tilting your smartphone using the gyroscope.
+
+- **System Controls**:
+  - Master volume slider with mute toggle.
+  - Media player deck: Previous, Play/Pause, Next.
+  - Do Not Disturb (DND) toggle.
+
+- **Cross-Platform Desktop Engines**:
+  - **Windows**: Native Win32 API integration (`ctypes.windll.user32.mouse_event`) ensuring zero-lag cursor and click response.
+  - **Linux**: Direct kernel-level `/dev/uinput` virtual device driver, operating natively across Wayland (GNOME, KDE Plasma, Sway, Hyprland) and X11 without display server dependencies.
+
+- **Instant Zero-Config Pairing**:
   - Automatic LAN discovery via UDP beacon.
-  - Visual QR code displayed on the Linux desktop GUI and directly in the terminal (for headless/SSH sessions).
-  - Web Remote (PWA) served directly from the Linux PC—zero app installation required to start controlling!
+  - Visual QR code displayed in the desktop GUI and directly in the terminal (for headless or SSH sessions).
+  - Self-hosted Web Remote: Served directly by the PC on port 8765. Zero app installation required.
   - Native standalone Android APK project ready to compile with Gradle.
 
 ---
 
-## 🚀 Quick Start
+## Quick Start
 
-### 1. Start the Linux Receiver
+### Windows
+
+Double-click `start-windows.bat` in the repository root, or run:
+
+```cmd
+cd server
+pip install -r requirements.txt
+python main.py
+```
+
+### Linux
 
 ```bash
-cd linux-server
-chmod +x install.sh setup-uinput.sh
+cd server
+chmod +x install.sh setup-uinput.sh start-linux.sh
 ./install.sh
 
-# Start with pairing GUI
-python3 main.py
+# Start with desktop pairing GUI:
+./start-linux.sh
 
-# Or start headless (CLI / SSH)
+# Or start headless (CLI / SSH):
 python3 main.py --cli
 ```
 
-### 2. Connect from Android
+### Connect from Android
 
-1. Ensure your phone is connected to the same Wi-Fi network as your Linux computer.
-2. Scan the **QR Code** displayed on your Linux screen (or terminal) with your phone's camera.
-3. The Mousely remote will open instantly in your browser!
-4. *(Optional)* Tap **"Add to Home screen"** in your phone's browser to install it as a standalone, fullscreen PWA.
+1. Ensure your phone and computer are connected to the same Wi-Fi network.
+2. Scan the QR code displayed in the Kursor window or terminal with your phone camera.
+3. The Kursor remote will open immediately in your mobile browser.
+4. Optional: Tap "Install" or "Add to Home screen" to run as a full-screen PWA.
 
 ---
 
-## 📱 Building the Native Android APK
+## Building the Native Android APK
 
-If you prefer installing a standalone native `.apk`:
+If you wish to compile a standalone native `.apk`:
 
 ```bash
 cd android
@@ -79,66 +95,69 @@ npm install
 npm run build
 npx cap sync android
 
-# Build debug APK
+# Build debug APK with Gradle
 cd android
 ./gradlew assembleDebug
 ```
-The APK will be generated at:
-`android/app/build/outputs/apk/debug/app-debug.apk`
 
-See [docs/ANDROID_BUILD.md](docs/ANDROID_BUILD.md) for full instructions.
+The APK will be generated at:
+`android/android/app/build/outputs/apk/debug/app-debug.apk`
+
+See [docs/ANDROID_BUILD.md](docs/ANDROID_BUILD.md) for full Android build details.
 
 ---
 
-## 🛠️ Linux Kernel `/dev/uinput` Configuration
+## Linux Kernel /dev/uinput Configuration
 
-To run Mousely without requiring `sudo` every time:
+To run Kursor on Linux without requiring `sudo` on every launch:
 
 ```bash
-cd linux-server
+cd server
 sudo ./setup-uinput.sh
 ```
-This loads the kernel module and grants write permissions to users in the `input` group.
 
-See [docs/LINUX_SETUP.md](docs/LINUX_SETUP.md) for distro-specific packages and systemd user service setup.
+This loads the `uinput` kernel module and configures udev rules for the `input` group. See [docs/LINUX_SETUP.md](docs/LINUX_SETUP.md) for detailed distributions instructions.
 
 ---
 
-## 📂 Project Architecture
+## Project Structure
 
 ```
 mouse/
-├── android/                         # Android Mobile Remote (React + Vite + Capacitor + PWA)
+├── android/                         # Android Mobile Remote (React, Vite, Capacitor, PWA)
 │   ├── src/
-│   │   ├── components/              # Trackpad, Presenter, QuickControls, Header, Modals
-│   │   ├── hooks/                   # useSocket (WebSocket), useHaptics, useOrientation (Gyro)
-│   │   ├── styles/theme.css         # Obsidian glassmorphism design matching mouse.ly
-│   │   └── App.tsx
-│   ├── android/                     # Full native Android Gradle project (Android Studio buildable)
+│   │   ├── components/              # Trackpad, QuickControls, Presenter, Header, Modals
+│   │   ├── hooks/                   # useSocket, useHaptics, useOrientation
+│   │   └── index.css                # Minimalist glassmorphic dark theme
+│   ├── android/                     # Standalone Android Studio / Gradle project
 │   └── capacitor.config.ts
 │
-├── linux-server/                    # Linux Host Receiver & Daemon
-│   ├── mousely/
-│   │   ├── server.py                # WebSocket & static HTTP server
+├── server/                          # Cross-Platform Desktop Server (Windows & Linux)
+│   ├── kursor/
+│   │   ├── server.py                # WebSocket & HTTP server
 │   │   ├── discovery.py             # UDP beacon & auto-discovery responder
-│   │   ├── input_engine/            # Kernel /dev/uinput, ydotool (Wayland), x11/pynput
-│   │   ├── system_controls.py       # Audio (pactl), Media (playerctl), DND
+│   │   ├── input_engine/            # Win32, kernel uinput (Wayland), X11/pynput
+│   │   ├── system_controls.py       # Audio, media, and notification controls
 │   │   ├── laser_overlay.py         # On-screen transparent laser pointer / spotlight
 │   │   ├── gui.py                   # Desktop GUI with QR code pairing
 │   │   └── config.py                # Configuration and settings persistence
-│   ├── setup-uinput.sh              # Kernel uinput permissions script
-│   ├── mousely-linux.service        # Systemd user service unit
-│   ├── install.sh                   # All-in-one Linux installer
-│   └── main.py                      # Main entrypoint
+│   ├── setup-uinput.sh              # Linux kernel uinput permissions script
+│   ├── kursor.service               # Linux systemd service unit
+│   ├── install.sh                   # Linux installer script
+│   ├── start-linux.sh               # Linux launcher script
+│   └── main.py                      # Server entrypoint
 │
-└── docs/
-    ├── LINUX_SETUP.md               # Detailed Linux guide (Wayland/X11/Distros)
-    ├── ANDROID_BUILD.md             # Native APK build & PWA guide
-    └── PROTOCOL.md                  # Protocol specification
+├── docs/
+│   ├── WINDOWS_SETUP.md             # Windows setup instructions
+│   ├── LINUX_SETUP.md               # Linux distribution and permissions guide
+│   ├── ANDROID_BUILD.md             # Native APK build & PWA guide
+│   └── PROTOCOL.md                  # Protocol specification
+│
+└── start-windows.bat                # 1-click Windows launcher
 ```
 
 ---
 
-## 📡 Protocol
+## Protocol
 
-Mousely uses a low-latency binary/JSON WebSocket protocol over port `8765` and a lightweight UDP beacon over port `8766`. For full packet schemas, see [docs/PROTOCOL.md](docs/PROTOCOL.md).
+Kursor uses a low-latency binary/JSON WebSocket protocol on port `8765` and a lightweight UDP discovery beacon on port `8766`. For packet structures and message flows, see [docs/PROTOCOL.md](docs/PROTOCOL.md).

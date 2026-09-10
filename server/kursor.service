@@ -1,10 +1,10 @@
 [Unit]
-Description=Mousely Linux Remote Trackpad & Presenter Receiver
+Description=Kursor Remote Trackpad & Presentation Server
 After=network.target sound.target
 
 [Service]
 Type=simple
-ExecStart=%h/.local/bin/mousely --cli
+ExecStart=%h/.local/bin/kursor --cli
 Restart=on-failure
 RestartSec=5
 Environment=PYTHONUNBUFFERED=1

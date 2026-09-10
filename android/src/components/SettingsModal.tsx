@@ -32,11 +32,11 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
       <div className="modal-content" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <Sliders size={20} color="#8b5cf6" />
+            <Sliders size={18} />
             <h3 className="modal-title">Preferences</h3>
           </div>
-          <button className="icon-button" style={{ width: '32px', height: '32px' }} onClick={onClose}>
-            <X size={16} />
+          <button className="icon-button" style={{ width: '30px', height: '30px' }} onClick={onClose}>
+            <X size={15} />
           </button>
         </div>
 
@@ -44,10 +44,10 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
           {/* Sensitivity */}
           <div>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-              <label style={{ fontSize: '0.85rem', fontWeight: 600, color: '#f8fafc' }}>
+              <label style={{ fontSize: '0.82rem', fontWeight: 500, color: 'var(--text-primary)' }}>
                 Cursor Sensitivity
               </label>
-              <span style={{ fontSize: '0.85rem', color: '#00f0ff', fontFamily: 'var(--font-mono)' }}>
+              <span style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', fontFamily: 'var(--font-mono)' }}>
                 {sensitivity.toFixed(1)}x
               </span>
             </div>
@@ -65,12 +65,12 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
           {/* Invert Scroll */}
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <div>
-              <div style={{ fontSize: '0.88rem', fontWeight: 600 }}>Natural Scrolling</div>
-              <div style={{ fontSize: '0.72rem', color: '#94a3b8' }}>Content follows finger direction</div>
+              <div style={{ fontSize: '0.85rem', fontWeight: 500 }}>Natural Scrolling</div>
+              <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>Content follows finger direction</div>
             </div>
             <button
               className={`tool-btn ${invertScroll ? 'active' : ''}`}
-              style={{ padding: '8px 16px', borderRadius: 'var(--radius-full)' }}
+              style={{ padding: '6px 14px', borderRadius: 'var(--radius-full)' }}
               onClick={() => {
                 haptics.click();
                 setInvertScroll(!invertScroll);
@@ -83,12 +83,12 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
           {/* Haptic Feedback */}
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <div>
-              <div style={{ fontSize: '0.88rem', fontWeight: 600 }}>Haptic Vibration</div>
-              <div style={{ fontSize: '0.72rem', color: '#94a3b8' }}>Vibrate on taps, clicks & slides</div>
+              <div style={{ fontSize: '0.85rem', fontWeight: 500 }}>Haptic Vibration</div>
+              <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>Vibrate on taps, clicks and slides</div>
             </div>
             <button
               className={`tool-btn ${hapticsEnabled ? 'active' : ''}`}
-              style={{ padding: '8px 16px', borderRadius: 'var(--radius-full)' }}
+              style={{ padding: '6px 14px', borderRadius: 'var(--radius-full)' }}
               onClick={() => {
                 const next = !hapticsEnabled;
                 setHapticsEnabled(next);
@@ -99,22 +99,22 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
             </button>
           </div>
 
-          {/* Linux Architecture Badge */}
+          {/* Cross-Platform Receiver Badge */}
           <div
             style={{
               padding: '12px',
               borderRadius: 'var(--radius-md)',
-              background: 'rgba(255, 255, 255, 0.03)',
+              background: 'rgba(255, 255, 255, 0.025)',
               border: '1px solid var(--border-subtle)',
               fontSize: '0.74rem',
-              color: '#94a3b8',
+              color: 'var(--text-secondary)',
               lineHeight: 1.4,
             }}
           >
-            <div style={{ fontWeight: 600, color: '#f8fafc', marginBottom: '4px' }}>
-              Universal Linux Support
+            <div style={{ fontWeight: 600, color: 'var(--text-primary)', marginBottom: '4px' }}>
+              Cross-Platform Desktop Engine
             </div>
-            Powered by kernel-level <code>/dev/uinput</code>. Fully compatible with Wayland (GNOME Shell, KDE Plasma, Sway, Hyprland) and X11.
+            Windows (Direct Win32 API) and Linux (/dev/uinput kernel driver, Wayland, X11) with zero driver installation required.
           </div>
 
           <button className="primary-button" onClick={onClose}>

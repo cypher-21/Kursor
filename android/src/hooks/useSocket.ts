@@ -26,13 +26,16 @@ export interface UseSocketReturn {
   sendMedia: (action: 'vol_up' | 'vol_down' | 'mute' | 'set_vol' | 'play_pause' | 'next' | 'prev', value?: number) => void;
   sendText: (content: string) => void;
   sendKey: (key: string) => void;
+  sendLiveInput: (char: string) => void;
+  sendLiveBackspace: () => void;
+  sendLiveEnter: () => void;
   toggleDnd: () => void;
 }
 
 export function useSocket(): UseSocketReturn {
   const [connected, setConnected] = useState(false);
   const [latency, setLatency] = useState<number | null>(null);
-  const [serverName, setServerName] = useState('Mousely Linux');
+  const [serverName, setServerName] = useState('Kursor');
   const [systemStatus, setSystemStatus] = useState<SystemStatus>({
     volume: 50,
     muted: false,
@@ -202,6 +205,18 @@ export function useSocket(): UseSocketReturn {
     sendRaw({ type: 'dnd' });
   }, [sendRaw]);
 
+  const sendLiveInput = useCallback((char: string) => {
+    sendRaw({ type: 'live_input', char });
+  }, [sendRaw]);
+
+  const sendLiveBackspace = useCallback(() => {
+    sendRaw({ type: 'live_backspace' });
+  }, [sendRaw]);
+
+  const sendLiveEnter = useCallback(() => {
+    sendRaw({ type: 'live_enter' });
+  }, [sendRaw]);
+
   return {
     connected,
     latency,
@@ -220,6 +235,9 @@ export function useSocket(): UseSocketReturn {
     sendMedia,
     sendText,
     sendKey,
+    sendLiveInput,
+    sendLiveBackspace,
+    sendLiveEnter,
     toggleDnd
   };
 }

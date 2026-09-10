@@ -1,5 +1,5 @@
 import React, { useRef, useState, useCallback } from 'react';
-import { MousePointer2, ArrowUpDown } from 'lucide-react';
+import { MousePointer2, ArrowUpDown, Minimize2 } from 'lucide-react';
 import { useHaptics } from '../hooks/useHaptics';
 
 interface TrackpadProps {
@@ -9,6 +9,8 @@ interface TrackpadProps {
   onGesture: (action: string) => void;
   sensitivity?: number;
   invertScroll?: boolean;
+  isFullscreen?: boolean;
+  onToggleFullscreen?: () => void;
 }
 
 interface TouchRipple {
@@ -24,6 +26,8 @@ export const Trackpad: React.FC<TrackpadProps> = ({
   onGesture,
   sensitivity = 1.0,
   invertScroll = false,
+  isFullscreen = false,
+  onToggleFullscreen,
 }) => {
   const haptics = useHaptics();
   const surfaceRef = useRef<HTMLDivElement>(null);
@@ -82,7 +86,7 @@ export const Trackpad: React.FC<TrackpadProps> = ({
         });
       }
       setRipples(newRipples);
-      setTimeout(() => setRipples([]), 350);
+      setTimeout(() => setRipples([]), 300);
     }
   };
 
@@ -178,9 +182,23 @@ export const Trackpad: React.FC<TrackpadProps> = ({
   );
 
   return (
-    <div className="trackpad-container">
+    <div className={`trackpad-container ${isFullscreen ? 'trackpad-fullscreen' : ''}`}>
+      {/* Floating Exit Fullscreen Pill */}
+      {isFullscreen && onToggleFullscreen && (
+        <div className="floating-action-bar">
+          <button
+            className="icon-button"
+            style={{ width: '32px', height: '32px', background: 'rgba(255,255,255,0.1)' }}
+            onClick={onToggleFullscreen}
+            title="Exit Fullscreen"
+          >
+            <Minimize2 size={16} />
+          </button>
+        </div>
+      )}
+
       {/* Main Gesture Area */}
-      <div style={{ flex: 1, display: 'flex', gap: '8px', minHeight: 0 }}>
+      <div style={{ flex: 1, display: 'flex', gap: '8px', minHeight: 0, width: '100%' }}>
         <div
           ref={surfaceRef}
           className={`trackpad-surface ${isTouching ? 'touching' : ''}`}
@@ -198,23 +216,16 @@ export const Trackpad: React.FC<TrackpadProps> = ({
             />
           ))}
 
-          {/* Watermark & gesture hints */}
+          {/* Minimalist subtle crosshair/pointer watermark */}
           <div className="trackpad-watermark">
-            <MousePointer2 size={38} strokeWidth={1.5} />
-            <div style={{ fontSize: '0.85rem', fontWeight: 500, letterSpacing: '0.5px' }}>
-              Multi-Touch Trackpad
-            </div>
-            <div style={{ fontSize: '0.72rem', color: '#64748b', textAlign: 'center', lineHeight: 1.5 }}>
-              1 Finger: Move & Click • 2 Fingers: Scroll & Right-Click<br />
-              3 Fingers: Overview & Desktop
-            </div>
+            <MousePointer2 size={32} strokeWidth={1.2} style={{ opacity: 0.15 }} />
           </div>
         </div>
 
         {/* Scroll Ribbon on edge */}
         <div
           style={{
-            width: '44px',
+            width: '40px',
             borderRadius: 'var(--radius-lg)',
             background: 'var(--bg-surface)',
             border: '1px solid var(--border-subtle)',
@@ -226,6 +237,7 @@ export const Trackpad: React.FC<TrackpadProps> = ({
             color: 'var(--text-muted)',
             cursor: 'ns-resize',
             touchAction: 'none',
+            flexShrink: 0,
           }}
           onTouchStart={(e) => {
             e.preventDefault();
@@ -234,8 +246,8 @@ export const Trackpad: React.FC<TrackpadProps> = ({
           onTouchMove={handleScrollRibbon}
           title="Scroll Ribbon"
         >
-          <ArrowUpDown size={18} />
-          <span style={{ fontSize: '0.65rem', writingMode: 'vertical-rl', fontWeight: 600, letterSpacing: '1px' }}>
+          <ArrowUpDown size={16} />
+          <span style={{ fontSize: '0.62rem', writingMode: 'vertical-rl', fontWeight: 600, letterSpacing: '1px' }}>
             SCROLL
           </span>
         </div>

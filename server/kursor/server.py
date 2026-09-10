@@ -15,7 +15,7 @@ from .system_controls import SystemControls
 from .laser_overlay import LaserOverlay
 from .discovery import DiscoveryService, get_local_ips
 
-class MouselyServer:
+class KursorServer:
     def __init__(self, port: int = 8765, static_dir: str = None):
         self.config = load_config()
         self.port = port or self.config.get("port", 8765)
@@ -31,8 +31,7 @@ class MouselyServer:
             spotlight_radius=self.config.get("spotlight_radius", 120)
         )
 
-
-        default_name = f"Mousely ({'Windows' if sys.platform == 'win32' else 'Linux'})"
+        default_name = f"Kursor ({'Windows' if sys.platform == 'win32' else 'Linux'})"
         self.server_name = self.config.get("name", default_name)
 
         self.discovery = DiscoveryService(
@@ -70,7 +69,7 @@ class MouselyServer:
         index_file = self.static_dir / "index.html"
         if index_file.exists():
             return web.FileResponse(index_file)
-        return web.Response(text="Mousely Web Remote not built yet. Run 'npm run build' in android/.", content_type="text/html")
+        return web.Response(text="Kursor Web Remote not built yet. Run 'npm run build' in android/.", content_type="text/html")
 
     async def handle_fallback(self, request: web.Request) -> web.Response:
         file_path = self.static_dir / request.match_info["tail"]
@@ -99,7 +98,7 @@ class MouselyServer:
 
         self.connected_sockets.add(ws)
         client_ip = request.remote
-        print(f"[Mousely] Remote device connected from {client_ip}. (Active: {len(self.connected_sockets)})")
+        print(f"[Kursor] Remote device connected from {client_ip}. (Active: {len(self.connected_sockets)})")
 
         # Send welcome & initial status
         await ws.send_json({
@@ -192,6 +191,17 @@ class MouselyServer:
                         elif msg_type == "text":
                             self.input_engine.type_text(data.get("content", ""))
 
+                        elif msg_type == "live_input":
+                            char = data.get("char", "")
+                            if char:
+                                self.input_engine.type_text(char)
+
+                        elif msg_type == "live_backspace":
+                            self.input_engine.press_key("backspace")
+
+                        elif msg_type == "live_enter":
+                            self.input_engine.press_key("enter")
+
                         elif msg_type == "key":
                             self.input_engine.press_key(data.get("key", ""))
 
@@ -202,14 +212,14 @@ class MouselyServer:
                     except Exception as err:
                         import traceback
                         traceback.print_exc()
-                        print(f"[Mousely] Error handling client packet: {err}")
+                        print(f"[Kursor] Error handling client packet: {err}")
 
                 elif msg.type == aiohttp.WSMsgType.ERROR:
-                    print(f"[Mousely] WebSocket error: {ws.exception()}")
+                    print(f"[Kursor] WebSocket error: {ws.exception()}")
 
         finally:
             self.connected_sockets.remove(ws)
-            print(f"[Mousely] Remote device disconnected. (Active: {len(self.connected_sockets)})")
+            print(f"[Kursor] Remote device disconnected. (Active: {len(self.connected_sockets)})")
 
         return ws
 
@@ -219,4 +229,7 @@ class MouselyServer:
         await runner.setup()
         site = web.TCPSite(runner, "0.0.0.0", self.port)
         await site.start()
-        print(f"[Mousely] Server listening on http://0.0.0.0:{self.port}")
+        print(f"[Kursor] Server listening on http://0.0.0.0:{self.port}")
+
+# Backward compatibility
+MouselyServer = KursorServer

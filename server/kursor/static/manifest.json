@@ -1,11 +1,11 @@
 {
-  "name": "Mousely Remote",
-  "short_name": "Mousely",
+  "name": "Kursor Remote",
+  "short_name": "Kursor",
   "start_url": "/",
   "display": "standalone",
-  "orientation": "portrait",
-  "background_color": "#0a0a0f",
-  "theme_color": "#0a0a0f",
+  "orientation": "any",
+  "background_color": "#09090b",
+  "theme_color": "#09090b",
   "icons": [
     {
       "src": "/favicon.svg",

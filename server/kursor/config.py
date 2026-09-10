@@ -15,12 +15,12 @@ DEFAULT_CONFIG = {
     "spotlight_radius": 120,
     "pin_required": False,
     "pin": "",
-    "name": "Mousely Linux"
+    "name": "Kursor"
 }
 
 def get_config_dir() -> Path:
     config_home = os.environ.get("XDG_CONFIG_HOME", os.path.expanduser("~/.config"))
-    path = Path(config_home) / "mousely"
+    path = Path(config_home) / "kursor"
     path.mkdir(parents=True, exist_ok=True)
     return path
 

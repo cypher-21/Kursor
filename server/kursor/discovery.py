@@ -2,6 +2,7 @@ import socket
 import json
 import asyncio
 import os
+import sys
 from typing import List
 
 def get_local_ips() -> List[str]:
@@ -36,10 +37,10 @@ def get_local_ips() -> List[str]:
 class DiscoveryService:
     """
     UDP Broadcast Beacon & Responder.
-    Allows Android client to automatically discover the Linux PC on the local Wi-Fi.
+    Allows Android client to automatically discover the PC on the local Wi-Fi.
     """
 
-    def __init__(self, http_port: int = 8765, discovery_port: int = 8766, server_name: str = "Mousely Linux"):
+    def __init__(self, http_port: int = 8765, discovery_port: int = 8766, server_name: str = "Kursor"):
         self.http_port = http_port
         self.discovery_port = discovery_port
         self.server_name = server_name
@@ -65,16 +66,17 @@ class DiscoveryService:
         """Periodically broadcast presence on the LAN."""
         loop = asyncio.get_running_loop()
         hostname = socket.gethostname()
+        platform_os = "windows" if sys.platform == "win32" else "linux"
 
         while self.running:
             ips = get_local_ips()
             payload = json.dumps({
-                "service": "mousely",
+                "service": "kursor",
                 "name": self.server_name,
                 "hostname": hostname,
                 "ips": ips,
                 "port": self.http_port,
-                "os": "linux",
+                "os": platform_os,
                 "version": "1.0.0"
             }).encode("utf-8")
 
@@ -90,20 +92,22 @@ class DiscoveryService:
         """Respond to direct discovery queries from clients."""
         loop = asyncio.get_running_loop()
         hostname = socket.gethostname()
+        platform_os = "windows" if sys.platform == "win32" else "linux"
 
         while self.running:
             try:
                 data, addr = await loop.sock_recvfrom(self._sock, 1024)
                 try:
                     msg = json.loads(data.decode("utf-8"))
-                    if msg.get("query") == "mousely_discover":
+                    query = msg.get("query")
+                    if query in ("kursor_discover", "mousely_discover"):
                         reply = json.dumps({
-                            "service": "mousely",
+                            "service": "kursor",
                             "name": self.server_name,
                             "hostname": hostname,
                             "ips": get_local_ips(),
                             "port": self.http_port,
-                            "os": "linux"
+                            "os": platform_os
                         }).encode("utf-8")
                         await loop.sock_sendto(self._sock, reply, addr)
                 except Exception:
