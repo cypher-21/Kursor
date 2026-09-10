@@ -1,0 +1,13 @@
+[Unit]
+Description=Mousely Linux Remote Trackpad & Presenter Receiver
+After=network.target sound.target
+
+[Service]
+Type=simple
+ExecStart=%h/.local/bin/mousely --cli
+Restart=on-failure
+RestartSec=5
+Environment=PYTHONUNBUFFERED=1
+
+[Install]
+WantedBy=default.target

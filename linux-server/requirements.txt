@@ -1,0 +1,7 @@
+websockets>=12.0
+aiohttp>=3.9.0
+qrcode>=7.4.2
+pillow>=10.0.0
+pynput>=1.7.6
+# For Linux kernel level uinput (Wayland & X11)
+# Install via: pip install evdev (requires Linux kernel headers or python3-evdev package)
