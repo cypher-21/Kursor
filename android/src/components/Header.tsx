@@ -1,5 +1,5 @@
 import React from 'react';
-import { Wifi, WifiOff, Settings, Battery, BatteryCharging, Zap, Download, Maximize2, Minimize2 } from 'lucide-react';
+import { Wifi, WifiOff, Settings, Battery, BatteryCharging, Zap, PlusSquare, Maximize2, Minimize2 } from 'lucide-react';
 import type { SystemStatus } from '../hooks/useSocket';
 
 interface HeaderProps {
@@ -68,7 +68,7 @@ export const Header: React.FC<HeaderProps> = ({
           </div>
         )}
 
-        {/* Install App / APK Button (Always Visible) */}
+        {/* Install / Add to Home Screen Button */}
         <button
           className="status-badge"
           style={{
@@ -79,9 +79,9 @@ export const Header: React.FC<HeaderProps> = ({
             fontWeight: 700,
           }}
           onClick={onOpenInstall}
-          title="Install App / Download APK"
+          title="Add to Home Screen / Install"
         >
-          <Download size={13} />
+          <PlusSquare size={13} />
           <span>Install</span>
         </button>
 

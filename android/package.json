@@ -10,14 +10,11 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@capacitor/core": "^8.5.1",
     "lucide-react": "^1.44.0",
     "react": "^19.2.8",
     "react-dom": "^19.2.8"
   },
   "devDependencies": {
-    "@capacitor/android": "^8.5.1",
-    "@capacitor/cli": "^8.5.1",
     "@types/node": "^24.13.3",
     "@types/react": "^19.2.18",
     "@types/react-dom": "^19.2.7",

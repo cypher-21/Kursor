@@ -1,5 +1,5 @@
-import React from 'react';
-import { X, Download, Smartphone, MoreVertical, PlusSquare, CheckCircle2 } from 'lucide-react';
+import React, { useState } from 'react';
+import { X, Smartphone, MoreVertical, PlusSquare, CheckCircle2, Share, Compass, Sparkles } from 'lucide-react';
 import { useHaptics } from '../hooks/useHaptics';
 
 interface InstallModalProps {
@@ -16,6 +16,13 @@ export const InstallModal: React.FC<InstallModalProps> = ({
   onPromptInstall,
 }) => {
   const haptics = useHaptics();
+  const [platform, setPlatform] = useState<'android' | 'ios'>(() => {
+    if (typeof navigator !== 'undefined') {
+      const ua = navigator.userAgent || '';
+      if (/iPhone|iPad|iPod/i.test(ua)) return 'ios';
+    }
+    return 'android';
+  });
 
   if (!isOpen) return null;
 
@@ -26,11 +33,11 @@ export const InstallModal: React.FC<InstallModalProps> = ({
 
   return (
     <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-content" style={{ maxWidth: '400px' }} onClick={(e) => e.stopPropagation()}>
+      <div className="modal-content" style={{ maxWidth: '420px' }} onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <Smartphone size={18} />
-            <h3 className="modal-title">Install Kursor on Android</h3>
+            <h3 className="modal-title">Add to Home Screen</h3>
           </div>
           <button className="icon-button" style={{ width: '30px', height: '30px' }} onClick={onClose}>
             <X size={15} />
@@ -38,106 +45,257 @@ export const InstallModal: React.FC<InstallModalProps> = ({
         </div>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-          {/* Method 1: Native APK Download */}
-          <div
-            style={{
-              padding: '14px',
-              borderRadius: 'var(--radius-md)',
-              background: 'var(--bg-surface-elevated)',
-              border: '1.5px solid var(--border-medium)',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '10px',
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <div style={{ fontWeight: 600, fontSize: '0.9rem', color: 'var(--text-primary)' }}>
-                Option 1: Download Native APK
-              </div>
-              <span className="status-badge connected" style={{ fontSize: '0.65rem' }}>Recommended</span>
-            </div>
-
-            <p style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', lineHeight: 1.4 }}>
-              Install the standalone Android application for offline launch, persistent full-screen, and zero address bars.
-            </p>
-
-            <a
-              href="/api/download-apk"
-              download="kursor-remote.apk"
+          {/* Direct Install Button if supported */}
+          {canPrompt && (
+            <button
+              type="button"
               className="primary-button"
               style={{
-                textDecoration: 'none',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 gap: '8px',
-                textAlign: 'center',
+                padding: '12px',
                 fontWeight: 600,
               }}
-              onClick={() => haptics.success()}
+              onClick={handlePromptClick}
             >
-              <Download size={16} />
-              <span>Download Kursor APK</span>
-            </a>
-          </div>
+              <Sparkles size={16} />
+              <span>Install Web App Now</span>
+            </button>
+          )}
 
-          {/* Method 2: Add to Home Screen (Instant PWA) */}
+          {/* Platform Switcher */}
           <div
             style={{
-              padding: '14px',
-              borderRadius: 'var(--radius-md)',
-              background: 'var(--bg-surface)',
-              border: '1px solid var(--border-subtle)',
               display: 'flex',
-              flexDirection: 'column',
-              gap: '10px',
+              background: 'var(--bg-surface-elevated)',
+              padding: '3px',
+              borderRadius: 'var(--radius-sm)',
+              border: '1.5px solid var(--border-medium)',
+              gap: '4px',
             }}
           >
-            <div style={{ fontWeight: 600, fontSize: '0.88rem', color: 'var(--text-primary)' }}>
-              Option 2: Add to Home Screen in Chrome
-            </div>
-
-            <p style={{ fontSize: '0.76rem', color: 'var(--text-secondary)', lineHeight: 1.4 }}>
-              Turn this web page into an app directly from your mobile browser:
-            </p>
-
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '0.78rem', color: 'var(--text-primary)' }}>
-                <div style={{ width: '22px', height: '22px', borderRadius: '50%', background: 'var(--bg-surface-elevated)', border: '1px solid var(--border-medium)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                  <MoreVertical size={13} />
-                </div>
-                <span>1. Tap Chrome's three dots menu (top right)</span>
-              </div>
-
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '0.78rem', color: 'var(--text-primary)' }}>
-                <div style={{ width: '22px', height: '22px', borderRadius: '50%', background: 'var(--bg-surface-elevated)', border: '1px solid var(--border-medium)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                  <PlusSquare size={13} />
-                </div>
-                <span>2. Select "Add to Home screen" or "Install app"</span>
-              </div>
-
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '0.78rem', color: 'var(--text-primary)' }}>
-                <div style={{ width: '22px', height: '22px', borderRadius: '50%', background: 'var(--bg-surface-elevated)', border: '1px solid var(--border-medium)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                  <CheckCircle2 size={13} />
-                </div>
-                <span>3. Tap "Add" to install Kursor on your phone</span>
-              </div>
-            </div>
-
-            {canPrompt && (
-              <button
-                type="button"
-                className="tool-btn"
-                style={{ padding: '9px', marginTop: '4px', color: 'var(--text-primary)' }}
-                onClick={handlePromptClick}
-              >
-                Trigger Browser Install Prompt
-              </button>
-            )}
+            <button
+              type="button"
+              style={{
+                flex: 1,
+                padding: '8px',
+                borderRadius: 'calc(var(--radius-sm) - 2px)',
+                background: platform === 'android' ? 'rgba(255, 255, 255, 0.14)' : 'transparent',
+                border: 'none',
+                color: platform === 'android' ? '#ffffff' : 'var(--text-muted)',
+                fontWeight: platform === 'android' ? 600 : 500,
+                fontSize: '0.82rem',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '6px',
+                transition: 'all 0.15s ease',
+              }}
+              onClick={() => {
+                haptics.tick();
+                setPlatform('android');
+              }}
+            >
+              <Compass size={14} />
+              <span>Android (Chrome)</span>
+            </button>
+            <button
+              type="button"
+              style={{
+                flex: 1,
+                padding: '8px',
+                borderRadius: 'calc(var(--radius-sm) - 2px)',
+                background: platform === 'ios' ? 'rgba(255, 255, 255, 0.14)' : 'transparent',
+                border: 'none',
+                color: platform === 'ios' ? '#ffffff' : 'var(--text-muted)',
+                fontWeight: platform === 'ios' ? 600 : 500,
+                fontSize: '0.82rem',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '6px',
+                transition: 'all 0.15s ease',
+              }}
+              onClick={() => {
+                haptics.tick();
+                setPlatform('ios');
+              }}
+            >
+              <Share size={14} />
+              <span>iPhone (Safari)</span>
+            </button>
           </div>
 
-          <button className="tool-btn" style={{ padding: '9px' }} onClick={onClose}>
-            Close
+          {/* Step-by-step instructions */}
+          <div
+            style={{
+              padding: '16px',
+              borderRadius: 'var(--radius-md)',
+              background: 'var(--bg-surface)',
+              border: '1.5px solid var(--border-medium)',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '12px',
+            }}
+          >
+            {platform === 'android' ? (
+              <>
+                <div style={{ fontWeight: 600, fontSize: '0.88rem', color: 'var(--text-primary)' }}>
+                  Chrome on Android:
+                </div>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px', fontSize: '0.82rem', color: 'var(--text-primary)' }}>
+                    <div
+                      style={{
+                        width: '26px',
+                        height: '26px',
+                        borderRadius: '50%',
+                        background: 'var(--bg-surface-elevated)',
+                        border: '1.5px solid var(--border-medium)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        flexShrink: 0,
+                        color: '#ffffff',
+                      }}
+                    >
+                      <MoreVertical size={14} />
+                    </div>
+                    <span>1. Tap Chrome's menu (three dots <strong>⋮</strong> at top right)</span>
+                  </div>
+
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px', fontSize: '0.82rem', color: 'var(--text-primary)' }}>
+                    <div
+                      style={{
+                        width: '26px',
+                        height: '26px',
+                        borderRadius: '50%',
+                        background: 'var(--bg-surface-elevated)',
+                        border: '1.5px solid var(--border-medium)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        flexShrink: 0,
+                        color: '#ffffff',
+                      }}
+                    >
+                      <PlusSquare size={14} />
+                    </div>
+                    <span>2. Tap <strong>"Add to Home screen"</strong> or <strong>"Install app"</strong></span>
+                  </div>
+
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px', fontSize: '0.82rem', color: 'var(--text-primary)' }}>
+                    <div
+                      style={{
+                        width: '26px',
+                        height: '26px',
+                        borderRadius: '50%',
+                        background: 'var(--bg-surface-elevated)',
+                        border: '1.5px solid var(--border-medium)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        flexShrink: 0,
+                        color: '#10b981',
+                      }}
+                    >
+                      <CheckCircle2 size={14} />
+                    </div>
+                    <span>3. Tap <strong>"Add"</strong> to create the icon</span>
+                  </div>
+                </div>
+              </>
+            ) : (
+              <>
+                <div style={{ fontWeight: 600, fontSize: '0.88rem', color: 'var(--text-primary)' }}>
+                  Safari on iOS:
+                </div>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px', fontSize: '0.82rem', color: 'var(--text-primary)' }}>
+                    <div
+                      style={{
+                        width: '26px',
+                        height: '26px',
+                        borderRadius: '50%',
+                        background: 'var(--bg-surface-elevated)',
+                        border: '1.5px solid var(--border-medium)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        flexShrink: 0,
+                        color: '#ffffff',
+                      }}
+                    >
+                      <Share size={14} />
+                    </div>
+                    <span>1. Tap the <strong>Share</strong> button at the bottom bar</span>
+                  </div>
+
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px', fontSize: '0.82rem', color: 'var(--text-primary)' }}>
+                    <div
+                      style={{
+                        width: '26px',
+                        height: '26px',
+                        borderRadius: '50%',
+                        background: 'var(--bg-surface-elevated)',
+                        border: '1.5px solid var(--border-medium)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        flexShrink: 0,
+                        color: '#ffffff',
+                      }}
+                    >
+                      <PlusSquare size={14} />
+                    </div>
+                    <span>2. Scroll down and tap <strong>"Add to Home Screen"</strong></span>
+                  </div>
+
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px', fontSize: '0.82rem', color: 'var(--text-primary)' }}>
+                    <div
+                      style={{
+                        width: '26px',
+                        height: '26px',
+                        borderRadius: '50%',
+                        background: 'var(--bg-surface-elevated)',
+                        border: '1.5px solid var(--border-medium)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        flexShrink: 0,
+                        color: '#10b981',
+                      }}
+                    >
+                      <CheckCircle2 size={14} />
+                    </div>
+                    <span>3. Tap <strong>"Add"</strong> in the top right</span>
+                  </div>
+                </div>
+              </>
+            )}
+
+            <div
+              style={{
+                marginTop: '6px',
+                paddingTop: '10px',
+                borderTop: '1px solid var(--border-subtle)',
+                fontSize: '0.74rem',
+                color: 'var(--text-secondary)',
+                lineHeight: 1.4,
+              }}
+            >
+              Once added, Kursor opens instantly in true fullscreen without browser bars.
+            </div>
+          </div>
+
+          <button className="tool-btn" style={{ padding: '10px' }} onClick={onClose}>
+            Done
           </button>
         </div>
       </div>
