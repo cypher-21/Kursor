@@ -111,20 +111,41 @@ class SystemControls:
             except Exception:
                 pass
 
-        # Check laptop battery
+        # Check laptop battery (Linux & Windows)
         battery_pct = None
         is_charging = False
-        bat_dirs = list(Path("/sys/class/power_supply").glob("BAT*")) if Path("/sys/class/power_supply").exists() else []
-        if bat_dirs:
+        if self.is_windows:
             try:
-                cap_file = bat_dirs[0] / "capacity"
-                if cap_file.exists():
-                    battery_pct = int(cap_file.read_text().strip())
-                stat_file = bat_dirs[0] / "status"
-                if stat_file.exists():
-                    is_charging = stat_file.read_text().strip().lower() == "charging"
+                import ctypes
+                from ctypes import wintypes
+                class _SPS(ctypes.Structure):
+                    _fields_ = [
+                        ("ACLineStatus", wintypes.BYTE),
+                        ("BatteryFlag", wintypes.BYTE),
+                        ("BatteryLifePercent", wintypes.BYTE),
+                        ("SystemStatusFlag", wintypes.BYTE),
+                        ("BatteryLifeTime", wintypes.DWORD),
+                        ("BatteryFullLifeTime", wintypes.DWORD),
+                    ]
+                sps = _SPS()
+                if ctypes.windll.kernel32.GetSystemPowerStatus(ctypes.byref(sps)):
+                    if sps.BatteryLifePercent != 255:
+                        battery_pct = int(sps.BatteryLifePercent)
+                    is_charging = sps.ACLineStatus == 1
             except Exception:
                 pass
+        else:
+            bat_dirs = list(Path("/sys/class/power_supply").glob("BAT*")) if Path("/sys/class/power_supply").exists() else []
+            if bat_dirs:
+                try:
+                    cap_file = bat_dirs[0] / "capacity"
+                    if cap_file.exists():
+                        battery_pct = int(cap_file.read_text().strip())
+                    stat_file = bat_dirs[0] / "status"
+                    if stat_file.exists():
+                        is_charging = stat_file.read_text().strip().lower() == "charging"
+                except Exception:
+                    pass
 
         return {
             "volume": vol,

@@ -51,7 +51,7 @@ class KursorGUI:
 
         lbl_title = tk.Label(
             header_frame,
-            text="Mousely Desktop",
+            text="Kursor Desktop",
             font=("Helvetica", 20, "bold"),
             fg=text_primary,
             bg=bg_color

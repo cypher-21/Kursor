@@ -48,7 +48,7 @@ class LaserOverlay:
 
         try:
             self._root = tk.Tk()
-            self._root.title("Mousely Laser Overlay")
+            self._root.title("Kursor Laser Overlay")
             self._root.attributes("-topmost", True)
             self._root.overrideredirect(True)
 

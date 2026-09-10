@@ -78,34 +78,12 @@ Or run headless / custom port:
 ./start-linux.sh --port 9000
 ```
 
-### Connect from Android
+### Connect from Phone (Android & iOS)
 
 1. Ensure your phone and computer are connected to the same Wi-Fi network.
 2. Scan the QR code displayed in the Kursor window or terminal with your phone camera.
-3. The Kursor remote will open immediately in your mobile browser.
-4. Optional: Tap "Install" or "Add to Home screen" to run as a full-screen PWA.
-
----
-
-## Building the Native Android APK
-
-If you wish to compile a standalone native `.apk`:
-
-```bash
-cd android
-npm install
-npm run build
-npx cap sync android
-
-# Build debug APK with Gradle
-cd android
-./gradlew assembleDebug
-```
-
-The APK will be generated at:
-`android/android/app/build/outputs/apk/debug/app-debug.apk`
-
-See [docs/ANDROID_BUILD.md](docs/ANDROID_BUILD.md) for full Android build details.
+3. The Kursor remote opens immediately in your mobile browser with zero installation required.
+4. Tap **"Install"** or **"Add to Home screen"** in the header to run it full-screen without browser URL bars!
 
 ---
 
@@ -126,13 +104,13 @@ This loads the `uinput` kernel module and configures udev rules for the `input` 
 
 ```
 mouse/
-├── android/                         # Android Mobile Remote (React, Vite, Capacitor, PWA)
+├── android/                         # Web Remote Client (React 19, TypeScript, Vite, PWA)
 │   ├── src/
 │   │   ├── components/              # Trackpad, QuickControls, Presenter, Header, Modals
 │   │   ├── hooks/                   # useSocket, useHaptics, useOrientation
-│   │   └── index.css                # Minimalist glassmorphic dark theme
-│   ├── android/                     # Standalone Android Studio / Gradle project
-│   └── capacitor.config.ts
+│   │   └── index.css                # High-contrast OLED dark theme & crisp outlines
+│   ├── public/                      # App icons, manifest.json, sw.js
+│   └── dist/                        # Production compiled web assets
 │
 ├── server/                          # Cross-Platform Desktop Server (Windows & Linux)
 │   ├── kursor/
