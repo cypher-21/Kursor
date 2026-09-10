@@ -169,7 +169,7 @@ export const QuickControls: React.FC<QuickControlsProps> = ({
             onBlur={handleBlur}
             autoComplete="off"
             autoCorrect="off"
-            autoCapitalize="off"
+            autoCapitalize="none"
             spellCheck={false}
             enterKeyHint="send"
             inputMode="text"
@@ -266,6 +266,10 @@ export const QuickControls: React.FC<QuickControlsProps> = ({
             placeholder="Paste or type complete message..."
             value={bulkText}
             onChange={(e) => setBulkText(e.target.value)}
+            autoCapitalize="none"
+            autoCorrect="off"
+            autoComplete="off"
+            spellCheck={false}
           />
           <button type="submit" className="icon-button" style={{ width: '42px', flexShrink: 0 }}>
             <Send size={15} />

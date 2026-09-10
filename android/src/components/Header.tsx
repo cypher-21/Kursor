@@ -73,7 +73,7 @@ export const Header: React.FC<HeaderProps> = ({
             className="icon-button"
             style={{ width: '32px', height: '32px' }}
             onClick={onToggleFullscreen}
-            title={isFullscreen ? 'Exit Fullscreen' : 'Fullscreen Trackpad'}
+            title={isFullscreen ? 'Exit Fullscreen' : 'Toggle Browser Fullscreen'}
           >
             {isFullscreen ? <Minimize2 size={15} /> : <Maximize2 size={15} />}
           </button>

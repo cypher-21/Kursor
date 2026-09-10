@@ -17,9 +17,10 @@ interface PresenterProps {
   onAction: (action: 'next' | 'prev' | 'start' | 'exit' | 'black' | 'white') => void;
   onLaser: (active: boolean, x?: number, y?: number, mode?: string) => void;
   onMove: (dx: number, dy: number) => void;
+  onClick?: (button?: 'left' | 'right' | 'middle', state?: 'click' | 'down' | 'up') => void;
 }
 
-export const Presenter: React.FC<PresenterProps> = ({ onAction, onLaser, onMove }) => {
+export const Presenter: React.FC<PresenterProps> = ({ onAction, onLaser, onMove, onClick }) => {
   const haptics = useHaptics();
 
   // Timer State
@@ -47,10 +48,12 @@ export const Presenter: React.FC<PresenterProps> = ({ onAction, onLaser, onMove 
   const [laserMode, setLaserMode] = useState<'laser' | 'spotlight'>('laser');
   const [gyroActive, setGyroActive] = useState(false);
 
-  const laserPadRef = useRef<HTMLDivElement>(null);
+  const pointerPadRef = useRef<HTMLDivElement>(null);
+  const prevTouchRef = useRef<{ x: number; y: number } | null>(null);
+  const touchStartRef = useRef<{ x: number; y: number; time: number }>({ x: 0, y: 0, time: 0 });
 
   // Handle Gyro air-mouse: sends RELATIVE move deltas to move the host cursor
-  const { requestPermission } = useOrientation(laserActive && gyroActive, (dx, dy) => {
+  const { requestPermission } = useOrientation(gyroActive, (dx, dy) => {
     onMove(dx, dy);
   });
 
@@ -61,20 +64,37 @@ export const Presenter: React.FC<PresenterProps> = ({ onAction, onLaser, onMove 
     onLaser(next, undefined, undefined, laserMode);
   };
 
-  const handleLaserTouchMove = (e: React.TouchEvent<HTMLDivElement>) => {
-    if (!laserActive || !laserPadRef.current) return;
-    const rect = laserPadRef.current.getBoundingClientRect();
+  // Pointer Pad touch handlers - acts like a mouse trackpad so user can "use it like a mouse"
+  const handlePointerTouchStart = (e: React.TouchEvent<HTMLDivElement>) => {
+    e.preventDefault();
     const touch = e.touches[0];
     if (!touch) return;
+    prevTouchRef.current = { x: touch.clientX, y: touch.clientY };
+    touchStartRef.current = { x: touch.clientX, y: touch.clientY, time: Date.now() };
+  };
 
-    // Normalize coordinates 0.0 -> 1.0 mapped to target screen coordinates
-    const normX = Math.max(0, Math.min(1, (touch.clientX - rect.left) / rect.width));
-    const normY = Math.max(0, Math.min(1, (touch.clientY - rect.top) / rect.height));
+  const handlePointerTouchMove = (e: React.TouchEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    const touch = e.touches[0];
+    if (!touch || !prevTouchRef.current) return;
 
-    const screenW = window.screen.width || 1920;
-    const screenH = window.screen.height || 1080;
+    const dx = (touch.clientX - prevTouchRef.current.x) * 1.3;
+    const dy = (touch.clientY - prevTouchRef.current.y) * 1.3;
+    prevTouchRef.current = { x: touch.clientX, y: touch.clientY };
 
-    onLaser(true, Math.round(normX * screenW), Math.round(normY * screenH), laserMode);
+    onMove(dx, dy);
+  };
+
+  const handlePointerTouchEnd = (e: React.TouchEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    prevTouchRef.current = null;
+    const touchDuration = Date.now() - touchStartRef.current.time;
+
+    // Quick tap = Left Click (advance slide or click link)
+    if (touchDuration < 250 && onClick) {
+      haptics.click();
+      onClick('left', 'click');
+    }
   };
 
   return (
@@ -111,8 +131,8 @@ export const Presenter: React.FC<PresenterProps> = ({ onAction, onLaser, onMove 
         </div>
       </div>
 
-      {/* Main Slide Navigation Row (Big Buttons) */}
-      <div className="slide-nav-row">
+      {/* Slide Navigation Row (Compact Cards) */}
+      <div className="slide-nav-row compact">
         {/* Previous Slide Button */}
         <button
           className="slide-btn prev-slide"
@@ -121,9 +141,11 @@ export const Presenter: React.FC<PresenterProps> = ({ onAction, onLaser, onMove 
             onAction('prev');
           }}
         >
-          <ChevronLeft size={36} strokeWidth={2} color="var(--text-secondary)" />
-          <span className="slide-btn-label">Previous</span>
-          <span className="slide-btn-sub">Page Up</span>
+          <ChevronLeft size={28} strokeWidth={2.2} color="var(--text-secondary)" />
+          <div>
+            <div className="slide-btn-label">Previous</div>
+            <div className="slide-btn-sub">Page Up</div>
+          </div>
         </button>
 
         {/* Next Slide Button (Dominant) */}
@@ -134,28 +156,37 @@ export const Presenter: React.FC<PresenterProps> = ({ onAction, onLaser, onMove 
             onAction('next');
           }}
         >
-          <ChevronRight size={36} strokeWidth={2.4} color="#ffffff" />
-          <span className="slide-btn-label" style={{ color: '#ffffff' }}>
-            Next Slide
-          </span>
-          <span className="slide-btn-sub" style={{ color: 'var(--text-secondary)' }}>Page Down</span>
+          <ChevronRight size={28} strokeWidth={2.4} color="#ffffff" />
+          <div>
+            <div className="slide-btn-label" style={{ color: '#ffffff' }}>
+              Next Slide
+            </div>
+            <div className="slide-btn-sub" style={{ color: 'var(--text-secondary)' }}>Page Down</div>
+          </div>
         </button>
       </div>
 
-      {/* Laser Pointer Touch Track Area */}
+      {/* Large Digital Pointer / Mouse Touch Area (flex: 1 dominant) */}
       <div
-        ref={laserPadRef}
-        className={`laser-pad ${laserActive ? 'active' : ''}`}
-        onTouchMove={handleLaserTouchMove}
+        ref={pointerPadRef}
+        className={`laser-pad expanded ${laserActive ? 'active' : ''}`}
+        onTouchStart={handlePointerTouchStart}
+        onTouchMove={handlePointerTouchMove}
+        onTouchEnd={handlePointerTouchEnd}
+        onTouchCancel={handlePointerTouchEnd}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <Crosshair size={16} color={laserActive ? '#ffffff' : 'var(--text-muted)'} />
-          <span className="laser-pad-label">
-            {laserActive ? (gyroActive ? 'Air-Mouse Active (Tilt Phone)' : 'Laser Pad (Drag to aim)') : 'Digital Pointer Off'}
+          <Crosshair size={20} color={laserActive ? '#ffffff' : 'var(--text-muted)'} />
+          <span className="laser-pad-label" style={{ fontSize: '0.96rem' }}>
+            {laserActive
+              ? (gyroActive ? 'Air-Mouse Active (Tilt Phone or Drag)' : 'Digital Pointer Active (Drag to Aim)')
+              : (gyroActive ? 'Air-Mouse Active (Tilt to Steer Mouse)' : 'Touch to Aim Pointer & Mouse')}
           </span>
         </div>
         <span className="laser-pad-hint">
-          {laserActive ? 'Beam visible on presentation display' : 'Tap Pointer button below to activate'}
+          {laserActive
+            ? 'Glowing beam visible on presentation display • Tap to click'
+            : 'Swipe anywhere to move cursor • Tap Pointer ON below for glow beam'}
         </span>
       </div>
 
@@ -190,8 +221,13 @@ export const Presenter: React.FC<PresenterProps> = ({ onAction, onLaser, onMove 
           onClick={async () => {
             const res = await requestPermission();
             if (res) {
-              setGyroActive(!gyroActive);
+              const next = !gyroActive;
+              setGyroActive(next);
               haptics.click();
+              if (next && !laserActive) {
+                // Also turn on pointer when air mouse is activated for visual feedback
+                toggleLaser();
+              }
             }
           }}
         >

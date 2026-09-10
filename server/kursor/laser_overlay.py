@@ -1,20 +1,22 @@
 import sys
 import threading
 import queue
-from typing import Optional
+import time
+from typing import Optional, Tuple
 
 class LaserOverlay:
     """
-    On-screen transparent overlay for Mousely Digital Laser Pointer & Presentation Spotlight.
-    Draws a glowing red/green laser dot or presentation spotlight centered on cursor/gyro target.
+    On-screen transparent overlay for Kursor Digital Laser Pointer & Presentation Spotlight.
+    Draws a glowing red laser dot or presentation spotlight centered on cursor/gyro target.
     """
 
-    def __init__(self, color: str = "#ff2a5f", dot_size: int = 16, spotlight_radius: int = 120):
+    def __init__(self, color: str = "#ff2a5f", dot_size: int = 14, spotlight_radius: int = 90):
         self.color = color
         self.dot_size = dot_size
         self.spotlight_radius = spotlight_radius
         self.is_active = False
         self.current_mode = "laser"  # 'laser' or 'spotlight'
+        self.explicit_coords = False
         self.target_x = 0
         self.target_y = 0
 
@@ -22,6 +24,7 @@ class LaserOverlay:
         self._thread: Optional[threading.Thread] = None
         self._root = None
         self._canvas = None
+        self._mouse_controller = None
 
     def start(self):
         if self._thread and self._thread.is_alive():
@@ -34,10 +37,30 @@ class LaserOverlay:
         self.current_mode = mode
         if active:
             self.start()
-        if x is not None and y is not None:
-            self.target_x = x
-            self.target_y = y
-        self._cmd_queue.put(("update", active, self.target_x, self.target_y, mode))
+        self._cmd_queue.put(("update", active, x, y, mode))
+
+    def _get_cursor_pos(self) -> Tuple[int, int]:
+        if sys.platform == "win32":
+            try:
+                import ctypes
+                from ctypes import wintypes
+                class POINT(ctypes.Structure):
+                    _fields_ = [("x", wintypes.LONG), ("y", wintypes.LONG)]
+                pt = POINT()
+                if ctypes.windll.user32.GetCursorPos(ctypes.byref(pt)):
+                    return int(pt.x), int(pt.y)
+            except Exception:
+                pass
+
+        # Fallback to pynput or default
+        try:
+            if self._mouse_controller is None:
+                from pynput.mouse import Controller
+                self._mouse_controller = Controller()
+            pos = self._mouse_controller.position
+            return int(pos[0]), int(pos[1])
+        except Exception:
+            return 960, 540
 
     def _run_ui(self):
         try:
@@ -61,10 +84,24 @@ class LaserOverlay:
             if sys.platform == "win32":
                 self._root.config(bg=bg_key)
                 self._root.attributes("-transparentcolor", bg_key)
+
+                # Make transparent window click-through so slide clicks work
+                try:
+                    import ctypes
+                    GWL_EXSTYLE = -20
+                    WS_EX_TRANSPARENT = 0x00000020
+                    WS_EX_LAYERED = 0x00080000
+                    hwnd = ctypes.windll.user32.GetParent(self._root.winfo_id())
+                    styles = ctypes.windll.user32.GetWindowLongW(hwnd, GWL_EXSTYLE)
+                    ctypes.windll.user32.SetWindowLongW(
+                        hwnd, GWL_EXSTYLE, styles | WS_EX_LAYERED | WS_EX_TRANSPARENT
+                    )
+                except Exception as e:
+                    print(f"[LaserOverlay] Note: could not apply WS_EX_TRANSPARENT: {e}")
             else:
                 try:
                     self._root.wait_visibility(self._root)
-                    self._root.attributes("-alpha", 0.95)
+                    self._root.attributes("-alpha", 0.92)
                     self._root.config(bg=bg_key)
                 except Exception:
                     self._root.config(bg=bg_key)
@@ -78,19 +115,34 @@ class LaserOverlay:
             )
             self._canvas.pack(fill="both", expand=True)
 
-            # Polling loop for queue commands
-            def poll_commands():
+            # Polling loop for tracking cursor and redrawing pointer
+            def poll_loop():
                 try:
                     while not self._cmd_queue.empty():
                         cmd, active, x, y, mode = self._cmd_queue.get_nowait()
-                        self._canvas.delete("all")
-                        if active:
-                            self._draw_pointer(x, y, mode)
+                        self.is_active = active
+                        self.current_mode = mode
+                        if x is not None and y is not None:
+                            self.explicit_coords = True
+                            self.target_x = x
+                            self.target_y = y
+                        else:
+                            self.explicit_coords = False
+
+                    self._canvas.delete("all")
+                    if self.is_active:
+                        if self.explicit_coords:
+                            px, py = self.target_x, self.target_y
+                        else:
+                            px, py = self._get_cursor_pos()
+
+                        self._draw_pointer(px, py, self.current_mode)
                 except Exception:
                     pass
-                self._root.after(16, poll_commands)
 
-            self._root.after(16, poll_commands)
+                self._root.after(16, poll_loop)
+
+            self._root.after(16, poll_loop)
             self._root.mainloop()
         except Exception as e:
             print(f"[LaserOverlay] UI loop exited: {e}")
@@ -100,22 +152,37 @@ class LaserOverlay:
             return
 
         if mode == "spotlight":
-            # Presentation Spotlight: dim background with clear circle around cursor
+            # Presentation Spotlight: clear highlighted circular area
             r = self.spotlight_radius
+            # Outer golden spotlight ring
             self._canvas.create_oval(
                 x - r, y - r, x + r, y + r,
-                outline=self.color, width=3
+                outline="#facc15", width=3
+            )
+            self._canvas.create_oval(
+                x - r - 3, y - r - 3, x + r + 3, y + r + 3,
+                outline="rgba(250, 204, 21, 0.4)", width=2
+            )
+            # Center subtle dot
+            self._canvas.create_oval(
+                x - 4, y - 4, x + 4, y + 4,
+                fill="#facc15", outline="#ffffff", width=1
             )
         else:
-            # Laser Pointer: Glowing halo and central core dot
+            # Laser Pointer: Glowing halo + intense laser ring + bright core dot
             r = self.dot_size
-            # Outer glow halo
+            # 1. Outer radiant glow
             self._canvas.create_oval(
-                x - r * 1.6, y - r * 1.6, x + r * 1.6, y + r * 1.6,
-                fill=self.color, outline="", stipple="gray50"
+                x - r * 2.2, y - r * 2.2, x + r * 2.2, y + r * 2.2,
+                fill=self.color, outline=""
             )
-            # Inner intense laser dot
+            # 2. Concentrated laser beam
             self._canvas.create_oval(
-                x - r, y - r, x + r, y + r,
-                fill="#ffffff", outline=self.color, width=2
+                x - r * 1.2, y - r * 1.2, x + r * 1.2, y + r * 1.2,
+                fill="#ff003b", outline="#ffffff", width=1
+            )
+            # 3. Blinding white center reflection
+            self._canvas.create_oval(
+                x - r * 0.45, y - r * 0.45, x + r * 0.45, y + r * 0.45,
+                fill="#ffffff", outline=""
             )

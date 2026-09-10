@@ -156,7 +156,37 @@ class X11Backend(InputBackend):
             self.keyboard.release(norm)
 
     def type_text(self, text: str) -> None:
-        self.keyboard.type(text)
+        if self.is_windows:
+            KEYEVENTF_KEYUP = 0x0002
+            KEYEVENTF_UNICODE = 0x0004
+            VK_RETURN = 0x0D
+            VK_TAB = 0x09
+            VK_BACK = 0x08
+
+            user32 = ctypes.windll.user32
+            for char in text:
+                if char in ("\n", "\r"):
+                    user32.keybd_event(VK_RETURN, 0, 0, 0)
+                    time.sleep(0.005)
+                    user32.keybd_event(VK_RETURN, 0, KEYEVENTF_KEYUP, 0)
+                elif char == "\t":
+                    user32.keybd_event(VK_TAB, 0, 0, 0)
+                    time.sleep(0.005)
+                    user32.keybd_event(VK_TAB, 0, KEYEVENTF_KEYUP, 0)
+                elif char == "\b":
+                    user32.keybd_event(VK_BACK, 0, 0, 0)
+                    time.sleep(0.005)
+                    user32.keybd_event(VK_BACK, 0, KEYEVENTF_KEYUP, 0)
+                else:
+                    # Send exact unicode code units (bypasses host Caps Lock and layout)
+                    utf16_bytes = char.encode("utf-16le")
+                    for i in range(0, len(utf16_bytes), 2):
+                        scan_code = utf16_bytes[i] | (utf16_bytes[i + 1] << 8)
+                        user32.keybd_event(0, scan_code, KEYEVENTF_UNICODE, 0)
+                        user32.keybd_event(0, scan_code, KEYEVENTF_UNICODE | KEYEVENTF_KEYUP, 0)
+                    time.sleep(0.002)
+        elif self.keyboard:
+            self.keyboard.type(text)
 
     def gesture(self, action: str) -> None:
         import sys

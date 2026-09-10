@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { MousePointer2, Presentation, SlidersHorizontal } from 'lucide-react';
 import { Header } from './components/Header';
 import { Trackpad } from './components/Trackpad';
@@ -13,7 +13,7 @@ export function App() {
   const [activeTab, setActiveTab] = useState<'trackpad' | 'presenter' | 'controls'>('trackpad');
   const [showConnectModal, setShowConnectModal] = useState(false);
   const [showSettingsModal, setShowSettingsModal] = useState(false);
-  const [isFullscreenTrackpad, setIsFullscreenTrackpad] = useState(false);
+  const [isBrowserFullscreen, setIsBrowserFullscreen] = useState(false);
 
   // Settings
   const [sensitivity, setSensitivity] = useState<number>(() => {
@@ -43,69 +43,116 @@ export function App() {
     localStorage.setItem('kursor_haptics', hapticsEnabled ? 'true' : 'false');
   }, [hapticsEnabled]);
 
+  // Track browser native fullscreen state (Chrome / Safari)
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      const doc = document as any;
+      const isFs = Boolean(
+        doc.fullscreenElement ||
+        doc.webkitFullscreenElement ||
+        doc.mozFullScreenElement ||
+        doc.msFullscreenElement
+      );
+      setIsBrowserFullscreen(isFs);
+    };
+
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
+    return () => {
+      document.removeEventListener('fullscreenchange', handleFullscreenChange);
+      document.removeEventListener('webkitfullscreenchange', handleFullscreenChange);
+    };
+  }, []);
+
   const haptics = useHaptics(hapticsEnabled);
 
   // Socket communication
   const socket = useSocket();
 
-  const toggleFullscreen = () => {
+  // HTML5 Fullscreen API toggle for Chrome browser
+  const toggleBrowserFullscreen = useCallback(async () => {
     haptics.click();
-    setIsFullscreenTrackpad((prev) => !prev);
-  };
+    try {
+      const doc = document as any;
+      const isFs = Boolean(
+        doc.fullscreenElement ||
+        doc.webkitFullscreenElement ||
+        doc.mozFullScreenElement ||
+        doc.msFullscreenElement
+      );
+
+      if (!isFs) {
+        const docEl = document.documentElement as any;
+        if (docEl.requestFullscreen) {
+          await docEl.requestFullscreen();
+        } else if (docEl.webkitRequestFullscreen) {
+          await docEl.webkitRequestFullscreen();
+        } else if (docEl.msRequestFullscreen) {
+          await docEl.msRequestFullscreen();
+        }
+      } else {
+        if (document.exitFullscreen) {
+          await document.exitFullscreen();
+        } else if (doc.webkitExitFullscreen) {
+          await doc.webkitExitFullscreen();
+        } else if (doc.msExitFullscreen) {
+          await doc.msExitFullscreen();
+        }
+      }
+    } catch (err) {
+      console.warn('Browser fullscreen request failed:', err);
+    }
+  }, [haptics]);
 
   return (
     <div className="app-shell">
-      {/* Top Header - hidden if fullscreen trackpad is active */}
-      {!isFullscreenTrackpad && (
-        <Header
-          connected={socket.connected}
-          serverName={socket.serverName}
-          latency={socket.latency}
-          status={socket.systemStatus}
-          onOpenConnect={() => setShowConnectModal(true)}
-          onOpenSettings={() => setShowSettingsModal(true)}
-          isFullscreen={isFullscreenTrackpad}
-          onToggleFullscreen={activeTab === 'trackpad' ? toggleFullscreen : undefined}
-        />
-      )}
+      {/* Top Header */}
+      <Header
+        connected={socket.connected}
+        serverName={socket.serverName}
+        latency={socket.latency}
+        status={socket.systemStatus}
+        onOpenConnect={() => setShowConnectModal(true)}
+        onOpenSettings={() => setShowSettingsModal(true)}
+        isFullscreen={isBrowserFullscreen}
+        onToggleFullscreen={toggleBrowserFullscreen}
+      />
 
-      {/* Navigation Mode Tabs - hidden if fullscreen trackpad is active */}
-      {!isFullscreenTrackpad && (
-        <nav className="nav-tab-container">
-          <button
-            className={`nav-tab ${activeTab === 'trackpad' ? 'active' : ''}`}
-            onClick={() => {
-              haptics.tick();
-              setActiveTab('trackpad');
-            }}
-          >
-            <MousePointer2 size={15} />
-            <span>Trackpad</span>
-          </button>
+      {/* Navigation Mode Tabs */}
+      <nav className="nav-tab-container">
+        <button
+          className={`nav-tab ${activeTab === 'trackpad' ? 'active' : ''}`}
+          onClick={() => {
+            haptics.tick();
+            setActiveTab('trackpad');
+          }}
+        >
+          <MousePointer2 size={15} />
+          <span>Trackpad</span>
+        </button>
 
-          <button
-            className={`nav-tab ${activeTab === 'presenter' ? 'active' : ''}`}
-            onClick={() => {
-              haptics.tick();
-              setActiveTab('presenter');
-            }}
-          >
-            <Presentation size={15} />
-            <span>Presenter</span>
-          </button>
+        <button
+          className={`nav-tab ${activeTab === 'presenter' ? 'active' : ''}`}
+          onClick={() => {
+            haptics.tick();
+            setActiveTab('presenter');
+          }}
+        >
+          <Presentation size={15} />
+          <span>Presenter</span>
+        </button>
 
-          <button
-            className={`nav-tab ${activeTab === 'controls' ? 'active' : ''}`}
-            onClick={() => {
-              haptics.tick();
-              setActiveTab('controls');
-            }}
-          >
-            <SlidersHorizontal size={15} />
-            <span>Controls</span>
-          </button>
-        </nav>
-      )}
+        <button
+          className={`nav-tab ${activeTab === 'controls' ? 'active' : ''}`}
+          onClick={() => {
+            haptics.tick();
+            setActiveTab('controls');
+          }}
+        >
+          <SlidersHorizontal size={15} />
+          <span>Controls</span>
+        </button>
+      </nav>
 
       {/* Main View Area */}
       <main className="main-content">
@@ -117,20 +164,24 @@ export function App() {
             onGesture={socket.sendGesture}
             sensitivity={sensitivity}
             invertScroll={invertScroll}
-            isFullscreen={isFullscreenTrackpad}
-            onToggleFullscreen={toggleFullscreen}
+            isFullscreen={isBrowserFullscreen}
+            onToggleFullscreen={toggleBrowserFullscreen}
+            onLiveInput={socket.sendLiveInput}
+            onLiveBackspace={socket.sendLiveBackspace}
+            onLiveEnter={socket.sendLiveEnter}
           />
         )}
 
-        {activeTab === 'presenter' && !isFullscreenTrackpad && (
+        {activeTab === 'presenter' && (
           <Presenter
             onAction={socket.sendPresenter}
             onLaser={socket.sendLaser}
             onMove={socket.sendMove}
+            onClick={socket.sendClick}
           />
         )}
 
-        {activeTab === 'controls' && !isFullscreenTrackpad && (
+        {activeTab === 'controls' && (
           <QuickControls
             status={socket.systemStatus}
             onMedia={socket.sendMedia}
@@ -169,5 +220,4 @@ export function App() {
     </div>
   );
 }
-
 export default App;

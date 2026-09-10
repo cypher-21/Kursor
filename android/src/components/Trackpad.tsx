@@ -1,5 +1,5 @@
 import React, { useRef, useState, useCallback } from 'react';
-import { MousePointer2, ArrowUpDown, Minimize2 } from 'lucide-react';
+import { MousePointer2, ArrowUpDown, Minimize2, Maximize2, Keyboard, Delete, CornerDownLeft, X } from 'lucide-react';
 import { useHaptics } from '../hooks/useHaptics';
 
 interface TrackpadProps {
@@ -11,6 +11,9 @@ interface TrackpadProps {
   invertScroll?: boolean;
   isFullscreen?: boolean;
   onToggleFullscreen?: () => void;
+  onLiveInput?: (char: string) => void;
+  onLiveBackspace?: () => void;
+  onLiveEnter?: () => void;
 }
 
 interface TouchRipple {
@@ -28,6 +31,9 @@ export const Trackpad: React.FC<TrackpadProps> = ({
   invertScroll = false,
   isFullscreen = false,
   onToggleFullscreen,
+  onLiveInput,
+  onLiveBackspace,
+  onLiveEnter,
 }) => {
   const haptics = useHaptics();
   const surfaceRef = useRef<HTMLDivElement>(null);
@@ -36,6 +42,16 @@ export const Trackpad: React.FC<TrackpadProps> = ({
   const [isTouching, setIsTouching] = useState(false);
   const [ripples, setRipples] = useState<TouchRipple[]>([]);
   const [activeButton, setActiveButton] = useState<string | null>(null);
+
+  // Keyboard integration state
+  const [isKeyboardActive, setIsKeyboardActive] = useState(false);
+  const [typedBuffer, setTypedBuffer] = useState('');
+  const [autoKbOnClick, setAutoKbOnClick] = useState<boolean>(() => {
+    return localStorage.getItem('kursor_auto_kb') === 'true';
+  });
+
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const prevValueRef = useRef('');
 
   // Refs for tracking touch dynamics
   const touchStartPosRef = useRef<{ x: number; y: number; time: number; count: number }>({
@@ -47,6 +63,76 @@ export const Trackpad: React.FC<TrackpadProps> = ({
   const prevCentroidRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
   const totalTravelRef = useRef<number>(0);
   const swipeHandledRef = useRef<boolean>(false);
+
+  // Keyboard activation (must be called directly inside user touch/click gesture)
+  const activateKeyboard = useCallback(() => {
+    if (textareaRef.current) {
+      textareaRef.current.focus();
+      setIsKeyboardActive(true);
+      haptics.click();
+    }
+  }, [haptics]);
+
+  const deactivateKeyboard = useCallback(() => {
+    if (textareaRef.current) {
+      textareaRef.current.blur();
+    }
+    setIsKeyboardActive(false);
+    setTypedBuffer('');
+    prevValueRef.current = '';
+  }, []);
+
+  const toggleAutoKb = () => {
+    const next = !autoKbOnClick;
+    setAutoKbOnClick(next);
+    localStorage.setItem('kursor_auto_kb', next ? 'true' : 'false');
+    haptics.tick();
+  };
+
+  // Handle typing inside trackpad
+  const handleKeyboardInput = useCallback(() => {
+    const el = textareaRef.current;
+    if (!el) return;
+
+    const current = el.value;
+    const prev = prevValueRef.current;
+
+    if (current.length > prev.length) {
+      const added = current.slice(prev.length);
+      for (const char of added) {
+        if (onLiveInput) onLiveInput(char);
+      }
+      setTypedBuffer((b) => (b + added).slice(-30));
+      haptics.tick();
+    } else if (current.length < prev.length) {
+      const deleted = prev.length - current.length;
+      for (let i = 0; i < deleted; i++) {
+        if (onLiveBackspace) onLiveBackspace();
+      }
+      setTypedBuffer((b) => b.slice(0, -deleted));
+      haptics.tick();
+    }
+
+    prevValueRef.current = current;
+
+    if (current.length > 200) {
+      el.value = current.slice(-50);
+      prevValueRef.current = el.value;
+    }
+  }, [onLiveInput, onLiveBackspace, haptics]);
+
+  const handleKeyboardKeyDown = useCallback((e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      if (onLiveEnter) onLiveEnter();
+      setTypedBuffer('');
+      haptics.click();
+      if (textareaRef.current) {
+        textareaRef.current.value = '';
+        prevValueRef.current = '';
+      }
+    }
+  }, [onLiveEnter, haptics]);
 
   // Compute centroid of touches
   const getCentroid = (touches: React.TouchList) => {
@@ -154,6 +240,12 @@ export const Trackpad: React.FC<TrackpadProps> = ({
         // 1-finger tap = Left Click
         haptics.click();
         onClick('left', 'click');
+
+        // If Auto-Keyboard on click is enabled, summon keyboard synchronously inside tap gesture
+        if (autoKbOnClick && textareaRef.current) {
+          textareaRef.current.focus();
+          setIsKeyboardActive(true);
+        }
       } else if (count === 2) {
         // 2-finger tap = Right Click
         haptics.click();
@@ -183,17 +275,97 @@ export const Trackpad: React.FC<TrackpadProps> = ({
 
   return (
     <div className={`trackpad-container ${isFullscreen ? 'trackpad-fullscreen' : ''}`}>
-      {/* Floating Exit Fullscreen Pill */}
-      {isFullscreen && onToggleFullscreen && (
-        <div className="floating-action-bar">
+      {/* Hidden textarea for live mobile keyboard input from the trackpad */}
+      <textarea
+        ref={textareaRef}
+        className="trackpad-hidden-input"
+        onInput={handleKeyboardInput}
+        onKeyDown={handleKeyboardKeyDown}
+        onFocus={() => setIsKeyboardActive(true)}
+        onBlur={() => setIsKeyboardActive(false)}
+        autoComplete="off"
+        autoCorrect="off"
+        autoCapitalize="none"
+        spellCheck={false}
+        enterKeyHint="send"
+        inputMode="text"
+        aria-label="Trackpad keyboard input"
+      />
+
+      {/* Floating Action Bar: Fullscreen & Keyboard Controls */}
+      <div className="floating-action-bar">
+        {/* Toggle On-Screen Keyboard */}
+        <button
+          className={`icon-button ${isKeyboardActive ? 'active' : ''}`}
+          style={{ width: '32px', height: '32px' }}
+          onClick={isKeyboardActive ? deactivateKeyboard : activateKeyboard}
+          title={isKeyboardActive ? 'Close Keyboard' : 'Open Keyboard'}
+        >
+          <Keyboard size={16} />
+        </button>
+
+        {/* Auto-Open Keyboard on Click toggle */}
+        <button
+          className="key-chip"
+          style={{
+            padding: '3px 7px',
+            fontSize: '0.65rem',
+            background: autoKbOnClick ? 'rgba(16, 185, 129, 0.2)' : 'rgba(255,255,255,0.06)',
+            borderColor: autoKbOnClick ? '#10b981' : 'var(--border-subtle)',
+            color: autoKbOnClick ? '#34d399' : 'var(--text-muted)',
+          }}
+          onClick={toggleAutoKb}
+          title="Toggle Auto-Open Keyboard when clicking on PC"
+        >
+          Auto-KB: {autoKbOnClick ? 'ON' : 'OFF'}
+        </button>
+
+        {/* Fullscreen Toggle */}
+        {onToggleFullscreen && (
           <button
             className="icon-button"
-            style={{ width: '32px', height: '32px', background: 'rgba(255,255,255,0.1)' }}
+            style={{ width: '32px', height: '32px' }}
             onClick={onToggleFullscreen}
-            title="Exit Fullscreen"
+            title={isFullscreen ? 'Exit Fullscreen' : 'Browser Fullscreen'}
           >
-            <Minimize2 size={16} />
+            {isFullscreen ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
           </button>
+        )}
+      </div>
+
+      {/* Active Live Typing Banner */}
+      {isKeyboardActive && (
+        <div className="trackpad-live-keyboard-bar">
+          <div className="trackpad-live-text">
+            <span style={{ color: 'var(--text-muted)', marginRight: '6px' }}>Sent:</span>
+            <span>{typedBuffer || 'Type on phone keyboard...'}</span>
+          </div>
+          <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+            <button
+              className="key-chip"
+              style={{ padding: '4px 8px', fontSize: '0.7rem' }}
+              onClick={() => { if (onLiveBackspace) onLiveBackspace(); haptics.tick(); }}
+              title="Backspace"
+            >
+              <Delete size={12} style={{ verticalAlign: 'middle' }} />
+            </button>
+            <button
+              className="key-chip"
+              style={{ padding: '4px 8px', fontSize: '0.7rem' }}
+              onClick={() => { if (onLiveEnter) onLiveEnter(); haptics.click(); setTypedBuffer(''); }}
+              title="Enter"
+            >
+              <CornerDownLeft size={12} style={{ verticalAlign: 'middle' }} />
+            </button>
+            <button
+              className="key-chip"
+              style={{ padding: '4px 8px', fontSize: '0.7rem', color: '#f87171' }}
+              onClick={deactivateKeyboard}
+              title="Dismiss Keyboard"
+            >
+              <X size={12} style={{ verticalAlign: 'middle' }} />
+            </button>
+          </div>
         </div>
       )}
 
@@ -259,7 +431,16 @@ export const Trackpad: React.FC<TrackpadProps> = ({
           className={`mouse-btn ${activeButton === 'left' ? 'active' : ''}`}
           onMouseDown={() => { setActiveButton('left'); onClick('left', 'down'); haptics.click(); }}
           onMouseUp={() => { setActiveButton(null); onClick('left', 'up'); }}
-          onTouchStart={(e) => { e.preventDefault(); setActiveButton('left'); onClick('left', 'down'); haptics.click(); }}
+          onTouchStart={(e) => {
+            e.preventDefault();
+            setActiveButton('left');
+            onClick('left', 'down');
+            haptics.click();
+            if (autoKbOnClick && textareaRef.current) {
+              textareaRef.current.focus();
+              setIsKeyboardActive(true);
+            }
+          }}
           onTouchEnd={(e) => { e.preventDefault(); setActiveButton(null); onClick('left', 'up'); }}
         >
           Left Click
