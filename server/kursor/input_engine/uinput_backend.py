@@ -3,8 +3,8 @@ from typing import Optional
 from .base import InputBackend
 
 try:
-    import evdev
-    from evdev import UInput, ecodes as e
+    import evdev  # type: ignore
+    from evdev import UInput, ecodes as e  # type: ignore
     HAVE_EVDEV = True
 except ImportError:
     HAVE_EVDEV = False

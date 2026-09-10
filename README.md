@@ -64,16 +64,18 @@ python main.py
 
 ### Linux
 
+From the repository root, simply run:
+
 ```bash
-cd server
-chmod +x install.sh setup-uinput.sh start-linux.sh
-./install.sh
-
-# Start with desktop pairing GUI:
+chmod +x start-linux.sh
 ./start-linux.sh
+```
 
-# Or start headless (CLI / SSH):
-python3 main.py --cli
+Or run headless / custom port:
+
+```bash
+./start-linux.sh --cli
+./start-linux.sh --port 9000
 ```
 
 ### Connect from Android
@@ -146,14 +148,14 @@ mouse/
 │   ├── install.sh                   # Linux installer script
 │   ├── start-linux.sh               # Linux launcher script
 │   └── main.py                      # Server entrypoint
-│
 ├── docs/
 │   ├── WINDOWS_SETUP.md             # Windows setup instructions
 │   ├── LINUX_SETUP.md               # Linux distribution and permissions guide
 │   ├── ANDROID_BUILD.md             # Native APK build & PWA guide
 │   └── PROTOCOL.md                  # Protocol specification
 │
-└── start-windows.bat                # 1-click Windows launcher
+├── start-windows.bat                # 1-click Windows launcher
+└── start-linux.sh                  # 1-click Linux launcher
 ```
 
 ---

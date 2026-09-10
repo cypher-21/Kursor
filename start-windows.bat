@@ -2,7 +2,7 @@
 title Kursor Desktop Server
 cd /d "%~dp0server"
 echo ==============================================
-echo       Kursor Desktop Server (Windows/Linux)
+echo         Kursor Desktop Server (Windows)
 echo ==============================================
 python -m pip install -r requirements.txt --quiet
 python main.py
