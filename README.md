@@ -1,11 +1,11 @@
-# Mousely for Linux & Android
+# Mousely for Linux, Windows & Android
 
 <p align="center">
-  <strong>Turn your Android smartphone into a wireless trackpad, presentation remote, and media controller for your Linux PC.</strong>
+  <strong>Turn your Android smartphone into a wireless trackpad, presentation remote, and media controller for your Linux or Windows PC.</strong>
 </p>
 
 <p align="center">
-  An open-source recreation of <a href="https://mouse.ly/">mouse.ly</a> tailored specifically for <strong>Linux</strong> (with universal Wayland & X11 support) and <strong>Android</strong>.
+  An open-source recreation of <a href="https://mouse.ly/">mouse.ly</a> engineered for <strong>Linux</strong> (Wayland & X11), <strong>Windows</strong> (10/11), and <strong>Android</strong>.
 </p>
 
 ---

@@ -84,19 +84,42 @@ class X11Backend(InputBackend):
         self.keyboard.type(text)
 
     def gesture(self, action: str) -> None:
+        import sys
+        is_windows = sys.platform == "win32"
+
         if action == "overview":
-            self.keyboard.press(Key.cmd)
-            time.sleep(0.02)
-            self.keyboard.release(Key.cmd)
+            if is_windows:
+                # Windows Task View (Win + Tab)
+                with self.keyboard.pressed(Key.cmd):
+                    self.keyboard.press(Key.tab)
+                    self.keyboard.release(Key.tab)
+            else:
+                # Linux Super key
+                self.keyboard.press(Key.cmd)
+                time.sleep(0.02)
+                self.keyboard.release(Key.cmd)
         elif action == "desktop":
+            # Super + D / Win + D
             with self.keyboard.pressed(Key.cmd):
                 self.keyboard.press('d')
                 self.keyboard.release('d')
         elif action == "workspace_next":
-            with self.keyboard.pressed(Key.ctrl), self.keyboard.pressed(Key.alt):
-                self.keyboard.press(Key.right)
-                self.keyboard.release(Key.right)
+            if is_windows:
+                # Win + Ctrl + Right
+                with self.keyboard.pressed(Key.cmd), self.keyboard.pressed(Key.ctrl):
+                    self.keyboard.press(Key.right)
+                    self.keyboard.release(Key.right)
+            else:
+                with self.keyboard.pressed(Key.ctrl), self.keyboard.pressed(Key.alt):
+                    self.keyboard.press(Key.right)
+                    self.keyboard.release(Key.right)
         elif action == "workspace_prev":
-            with self.keyboard.pressed(Key.ctrl), self.keyboard.pressed(Key.alt):
-                self.keyboard.press(Key.left)
-                self.keyboard.release(Key.left)
+            if is_windows:
+                # Win + Ctrl + Left
+                with self.keyboard.pressed(Key.cmd), self.keyboard.pressed(Key.ctrl):
+                    self.keyboard.press(Key.left)
+                    self.keyboard.release(Key.left)
+            else:
+                with self.keyboard.pressed(Key.ctrl), self.keyboard.pressed(Key.alt):
+                    self.keyboard.press(Key.left)
+                    self.keyboard.release(Key.left)

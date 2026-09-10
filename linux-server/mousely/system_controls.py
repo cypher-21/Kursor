@@ -1,20 +1,32 @@
+import sys
 import shutil
 import subprocess
 from pathlib import Path
 from typing import Dict, Any
 
+try:
+    from pynput.keyboard import Controller as KeyboardController, Key
+    _HAS_PYNPUT = True
+except ImportError:
+    _HAS_PYNPUT = False
+
 class SystemControls:
-    """Manages Linux host system settings (Audio, Media playback, DND, Battery)."""
+    """Manages host system settings (Audio, Media playback, DND, Battery) on Linux & Windows."""
 
     def __init__(self):
+        self.is_windows = sys.platform == "win32"
         self.has_pactl = shutil.which("pactl") is not None
         self.has_pamixer = shutil.which("pamixer") is not None
         self.has_playerctl = shutil.which("playerctl") is not None
         self.has_dunstctl = shutil.which("dunstctl") is not None
         self.dnd_active = False
+        self._kb = KeyboardController() if _HAS_PYNPUT else None
 
     def volume_up(self, step: int = 5) -> None:
-        if self.has_pactl:
+        if self.is_windows and self._kb:
+            self._kb.press(Key.media_volume_up)
+            self._kb.release(Key.media_volume_up)
+        elif self.has_pactl:
             subprocess.run(["pactl", "set-sink-volume", "@DEFAULT_SINK@", f"+{step}%"], capture_output=True)
         elif self.has_pamixer:
             subprocess.run(["pamixer", "-i", str(step)], capture_output=True)
@@ -22,7 +34,10 @@ class SystemControls:
             subprocess.run(["amixer", "-D", "pulse", "sset", "Master", f"{step}%+"], capture_output=True)
 
     def volume_down(self, step: int = 5) -> None:
-        if self.has_pactl:
+        if self.is_windows and self._kb:
+            self._kb.press(Key.media_volume_down)
+            self._kb.release(Key.media_volume_down)
+        elif self.has_pactl:
             subprocess.run(["pactl", "set-sink-volume", "@DEFAULT_SINK@", f"-{step}%"], capture_output=True)
         elif self.has_pamixer:
             subprocess.run(["pamixer", "-d", str(step)], capture_output=True)
@@ -30,7 +45,10 @@ class SystemControls:
             subprocess.run(["amixer", "-D", "pulse", "sset", "Master", f"{step}%-"], capture_output=True)
 
     def volume_mute_toggle(self) -> None:
-        if self.has_pactl:
+        if self.is_windows and self._kb:
+            self._kb.press(Key.media_volume_mute)
+            self._kb.release(Key.media_volume_mute)
+        elif self.has_pactl:
             subprocess.run(["pactl", "set-sink-mute", "@DEFAULT_SINK@", "toggle"], capture_output=True)
         elif self.has_pamixer:
             subprocess.run(["pamixer", "-t"], capture_output=True)
@@ -43,15 +61,24 @@ class SystemControls:
             subprocess.run(["pamixer", "--set-volume", str(percent)], capture_output=True)
 
     def media_play_pause(self) -> None:
-        if self.has_playerctl:
+        if self.is_windows and self._kb:
+            self._kb.press(Key.media_play_pause)
+            self._kb.release(Key.media_play_pause)
+        elif self.has_playerctl:
             subprocess.run(["playerctl", "play-pause"], capture_output=True)
 
     def media_next(self) -> None:
-        if self.has_playerctl:
+        if self.is_windows and self._kb:
+            self._kb.press(Key.media_next)
+            self._kb.release(Key.media_next)
+        elif self.has_playerctl:
             subprocess.run(["playerctl", "next"], capture_output=True)
 
     def media_prev(self) -> None:
-        if self.has_playerctl:
+        if self.is_windows and self._kb:
+            self._kb.press(Key.media_previous)
+            self._kb.release(Key.media_previous)
+        elif self.has_playerctl:
             subprocess.run(["playerctl", "previous"], capture_output=True)
 
     def toggle_dnd(self) -> bool:
