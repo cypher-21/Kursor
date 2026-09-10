@@ -1,5 +1,6 @@
 import sys
 import io
+import webbrowser
 from pathlib import Path
 from typing import Optional, List
 import qrcode
@@ -31,7 +32,7 @@ class MouselyGUI:
 
     def start(self):
         self.root = tk.Tk()
-        self.root.title("Mousely for Linux")
+        self.root.title("Mousely Desktop")
         self.root.geometry("460x620")
         self.root.resizable(False, False)
 
@@ -98,6 +99,7 @@ class MouselyGUI:
             cursor="hand2"
         )
         url_label.pack(pady=(0, 16))
+        url_label.bind("<Button-1>", lambda e: webbrowser.open(url))
 
         # Controls & Settings Section
         settings_card = tk.Frame(self.root, bg=card_bg, highlightbackground="#2d2d3a", highlightthickness=1)

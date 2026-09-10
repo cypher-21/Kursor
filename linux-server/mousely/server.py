@@ -32,10 +32,13 @@ class MouselyServer:
         )
 
 
+        default_name = f"Mousely ({'Windows' if sys.platform == 'win32' else 'Linux'})"
+        self.server_name = self.config.get("name", default_name)
+
         self.discovery = DiscoveryService(
             http_port=self.port,
             discovery_port=self.config.get("udp_discovery_port", 8766),
-            server_name=self.config.get("name", "Mousely Linux")
+            server_name=self.server_name
         )
 
         # Static assets directory (for the web app)
@@ -77,7 +80,7 @@ class MouselyServer:
 
     async def handle_info(self, request: web.Request) -> web.Response:
         data = {
-            "name": self.config.get("name", "Mousely Linux"),
+            "name": self.server_name,
             "os": sys.platform,
             "version": "1.0.0",
             "ips": get_local_ips(),
@@ -101,7 +104,7 @@ class MouselyServer:
         # Send welcome & initial status
         await ws.send_json({
             "type": "init",
-            "server_name": self.config.get("name", "Mousely Linux"),
+            "server_name": self.server_name,
             "status": self.sys_controls.get_system_status(),
             "settings": {
                 "sensitivity": self.config.get("mouse_sensitivity", 1.2),
@@ -197,6 +200,8 @@ class MouselyServer:
                             await ws.send_json({"type": "pong", "t": data.get("t")})
 
                     except Exception as err:
+                        import traceback
+                        traceback.print_exc()
                         print(f"[Mousely] Error handling client packet: {err}")
 
                 elif msg.type == aiohttp.WSMsgType.ERROR:
