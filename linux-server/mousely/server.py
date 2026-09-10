@@ -30,7 +30,7 @@ class MouselyServer:
             dot_size=self.config.get("laser_size", 18),
             spotlight_radius=self.config.get("spotlight_radius", 120)
         )
-        self.laser_overlay.start()
+
 
         self.discovery = DiscoveryService(
             http_port=self.port,

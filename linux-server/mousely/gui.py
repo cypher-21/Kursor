@@ -50,7 +50,7 @@ class MouselyGUI:
 
         lbl_title = tk.Label(
             header_frame,
-            text="Mousely Linux",
+            text="Mousely Desktop",
             font=("Helvetica", 20, "bold"),
             fg=text_primary,
             bg=bg_color
@@ -84,7 +84,7 @@ class MouselyGUI:
         qr.make(fit=True)
         img = qr.make_image(fill_color="#ffffff", back_color="#181820")
         
-        self.qr_photo = ImageTk.PhotoImage(img)
+        self.qr_photo = ImageTk.PhotoImage(img, master=self.root)
 
         qr_label = tk.Label(qr_card, image=self.qr_photo, bg=card_bg)
         qr_label.pack(pady=(16, 8))

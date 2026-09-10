@@ -32,6 +32,8 @@ class LaserOverlay:
     def update_pointer(self, active: bool, x: Optional[int] = None, y: Optional[int] = None, mode: str = "laser"):
         self.is_active = active
         self.current_mode = mode
+        if active:
+            self.start()
         if x is not None and y is not None:
             self.target_x = x
             self.target_y = y

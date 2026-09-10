@@ -71,8 +71,6 @@ def main():
     except Exception:
         pass
 
-    server = MouselyServer(port=args.port, static_dir=args.static)
-
     # Determine whether to run GUI
     has_display = bool(os.environ.get("DISPLAY") or os.environ.get("WAYLAND_DISPLAY") or sys.platform == "win32")
     start_gui = (args.gui or (has_display and not args.cli))
@@ -81,10 +79,12 @@ def main():
         try:
             from mousely.gui import MouselyGUI
             gui_app = MouselyGUI(port=args.port)
+
             # Run server in asyncio background thread
             def run_server():
                 loop = asyncio.new_event_loop()
                 asyncio.set_event_loop(loop)
+                server = MouselyServer(port=args.port, static_dir=args.static)
                 loop.run_until_complete(server.start())
                 loop.run_forever()
 
@@ -95,15 +95,12 @@ def main():
             gui_app.start()
             return
         except Exception as e:
-            print(f"[Mousely] GUI initialization skipped: {e}. Running in CLI mode.")
+            print(f"[Mousely] GUI closed or skipped: {e}. Running in CLI mode.")
 
     # Headless CLI loop
-    try:
-        loop = asyncio.get_running_loop()
-    except RuntimeError:
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+    server = MouselyServer(port=args.port, static_dir=args.static)
     loop.run_until_complete(server.start())
     try:
         loop.run_forever()
