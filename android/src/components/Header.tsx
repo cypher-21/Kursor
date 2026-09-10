@@ -1,5 +1,5 @@
 import React from 'react';
-import { Wifi, WifiOff, Settings, Battery, BatteryCharging, Zap, PlusSquare, Maximize2, Minimize2 } from 'lucide-react';
+import { Wifi, WifiOff, Settings, Battery, BatteryCharging, Zap, Maximize2, Minimize2 } from 'lucide-react';
 import type { SystemStatus } from '../hooks/useSocket';
 
 interface HeaderProps {
@@ -7,7 +7,6 @@ interface HeaderProps {
   serverName: string;
   latency: number | null;
   status: SystemStatus;
-  onOpenInstall: () => void;
   onOpenConnect: () => void;
   onOpenSettings: () => void;
   isFullscreen?: boolean;
@@ -19,12 +18,14 @@ export const Header: React.FC<HeaderProps> = ({
   serverName,
   latency,
   status,
-  onOpenInstall,
   onOpenConnect,
   onOpenSettings,
   isFullscreen,
   onToggleFullscreen,
 }) => {
+  // Truncate server name for compact display
+  const displayName = serverName.length > 8 ? serverName.slice(0, 7) + '..' : serverName;
+
   return (
     <header className="app-header">
       <div className="brand-section">
@@ -34,12 +35,10 @@ export const Header: React.FC<HeaderProps> = ({
             <path d="M12 6v4" />
           </svg>
         </div>
-        <div>
-          <div className="brand-name">Kursor</div>
-        </div>
+        <div className="brand-name">Kursor</div>
       </div>
 
-      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+      <div className="header-actions">
         {/* Connection status pill */}
         <button
           onClick={onOpenConnect}
@@ -48,13 +47,13 @@ export const Header: React.FC<HeaderProps> = ({
           title={connected ? `Connected to ${serverName}` : 'Disconnected. Tap to connect'}
         >
           <span className="pulse-dot" />
-          <span>{connected ? (serverName.length > 12 ? serverName.slice(0, 10) + '...' : serverName) : 'Offline'}</span>
+          <span>{connected ? displayName : 'Offline'}</span>
           {connected ? <Wifi size={12} /> : <WifiOff size={12} />}
         </button>
 
         {/* Latency badge */}
         {connected && latency !== null && (
-          <div className="status-badge" style={{ color: '#e4e4e7' }}>
+          <div className="status-badge">
             <Zap size={11} />
             <span>{latency}ms</span>
           </div>
@@ -62,28 +61,11 @@ export const Header: React.FC<HeaderProps> = ({
 
         {/* Host Laptop Battery */}
         {status.battery !== null && (
-          <div className="status-badge" style={{ color: '#e4e4e7' }}>
+          <div className="status-badge">
             {status.charging ? <BatteryCharging size={13} color="#10b981" /> : <Battery size={13} />}
             <span>{status.battery}%</span>
           </div>
         )}
-
-        {/* Install / Add to Home Screen Button */}
-        <button
-          className="status-badge"
-          style={{
-            cursor: 'pointer',
-            background: 'rgba(255, 255, 255, 0.12)',
-            borderColor: 'var(--border-medium)',
-            color: '#ffffff',
-            fontWeight: 700,
-          }}
-          onClick={onOpenInstall}
-          title="Add to Home Screen / Install"
-        >
-          <PlusSquare size={13} />
-          <span>Install</span>
-        </button>
 
         {/* Fullscreen Toggle */}
         {onToggleFullscreen && (

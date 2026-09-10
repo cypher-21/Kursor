@@ -6,7 +6,6 @@ import { Presenter } from './components/Presenter';
 import { QuickControls } from './components/QuickControls';
 import { ConnectionModal } from './components/ConnectionModal';
 import { SettingsModal } from './components/SettingsModal';
-import { InstallModal } from './components/InstallModal';
 import { useSocket } from './hooks/useSocket';
 import { useHaptics } from './hooks/useHaptics';
 
@@ -14,7 +13,6 @@ export function App() {
   const [activeTab, setActiveTab] = useState<'trackpad' | 'presenter' | 'controls'>('trackpad');
   const [showConnectModal, setShowConnectModal] = useState(false);
   const [showSettingsModal, setShowSettingsModal] = useState(false);
-  const [showInstallModal, setShowInstallModal] = useState(false);
   const [isFullscreenTrackpad, setIsFullscreenTrackpad] = useState(false);
 
   // Settings
@@ -45,28 +43,6 @@ export function App() {
     localStorage.setItem('kursor_haptics', hapticsEnabled ? 'true' : 'false');
   }, [hapticsEnabled]);
 
-  // PWA Installation prompt
-  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
-
-  useEffect(() => {
-    const handleBeforeInstall = (e: any) => {
-      e.preventDefault();
-      setDeferredPrompt(e);
-    };
-    window.addEventListener('beforeinstallprompt', handleBeforeInstall);
-    return () => window.removeEventListener('beforeinstallprompt', handleBeforeInstall);
-  }, []);
-
-  const handleInstallApp = async () => {
-    if (deferredPrompt) {
-      deferredPrompt.prompt();
-      const { outcome } = await deferredPrompt.userChoice;
-      if (outcome === 'accepted') {
-        setDeferredPrompt(null);
-      }
-    }
-  };
-
   const haptics = useHaptics(hapticsEnabled);
 
   // Socket communication
@@ -78,7 +54,7 @@ export function App() {
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', width: '100%', overflow: 'hidden' }}>
+    <div className="app-shell">
       {/* Top Header - hidden if fullscreen trackpad is active */}
       {!isFullscreenTrackpad && (
         <Header
@@ -86,7 +62,6 @@ export function App() {
           serverName={socket.serverName}
           latency={socket.latency}
           status={socket.systemStatus}
-          onOpenInstall={() => setShowInstallModal(true)}
           onOpenConnect={() => setShowConnectModal(true)}
           onOpenSettings={() => setShowSettingsModal(true)}
           isFullscreen={isFullscreenTrackpad}
@@ -133,7 +108,7 @@ export function App() {
       )}
 
       {/* Main View Area */}
-      <main style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0, overflow: 'hidden' }}>
+      <main className="main-content">
         {activeTab === 'trackpad' && (
           <Trackpad
             onMove={socket.sendMove}
@@ -151,6 +126,7 @@ export function App() {
           <Presenter
             onAction={socket.sendPresenter}
             onLaser={socket.sendLaser}
+            onMove={socket.sendMove}
           />
         )}
 
@@ -169,13 +145,6 @@ export function App() {
       </main>
 
       {/* Modals */}
-      <InstallModal
-        isOpen={showInstallModal}
-        onClose={() => setShowInstallModal(false)}
-        canPrompt={Boolean(deferredPrompt)}
-        onPromptInstall={handleInstallApp}
-      />
-
       <ConnectionModal
         isOpen={showConnectModal}
         onClose={() => setShowConnectModal(false)}

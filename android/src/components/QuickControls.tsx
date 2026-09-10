@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useCallback } from 'react';
 import {
   Volume2,
   VolumeX,
@@ -51,43 +51,65 @@ export const QuickControls: React.FC<QuickControlsProps> = ({
   const [liveBuffer, setLiveBuffer] = useState('');
   const [isLiveActive, setIsLiveActive] = useState(false);
   const [bulkText, setBulkText] = useState('');
-  const inputRef = useRef<HTMLInputElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const prevValueRef = useRef('');
 
-  // Handle Mobile Virtual Keyboard (Gboard, Samsung, SwiftKey)
-  const handleBeforeInput = (e: any) => {
-    const inputType = e.inputType;
-    if (inputType === 'insertText' && e.data) {
-      e.preventDefault();
-      for (const char of e.data) {
+  // Focus the hidden textarea when user taps the keyboard card
+  const activateKeyboard = useCallback(() => {
+    if (textareaRef.current) {
+      textareaRef.current.focus();
+    }
+  }, []);
+
+  // Handle input events from the hidden textarea.
+  // This approach works reliably with mobile IME keyboards (Gboard, Samsung, SwiftKey)
+  // because we use an uncontrolled textarea and detect changes via the input event.
+  const handleInput = useCallback(() => {
+    const el = textareaRef.current;
+    if (!el) return;
+
+    const current = el.value;
+    const prev = prevValueRef.current;
+
+    if (current.length > prev.length) {
+      // Characters were added
+      const added = current.slice(prev.length);
+      for (const char of added) {
         onLiveInput(char);
       }
-      setLiveBuffer((prev) => (prev + e.data).slice(-30));
+      setLiveBuffer((b) => (b + added).slice(-40));
       haptics.tick();
-    } else if (inputType === 'deleteContentBackward') {
-      e.preventDefault();
-      onLiveBackspace();
-      setLiveBuffer((prev) => prev.slice(0, -1));
+    } else if (current.length < prev.length) {
+      // Characters were deleted (backspace)
+      const deleted = prev.length - current.length;
+      for (let i = 0; i < deleted; i++) {
+        onLiveBackspace();
+      }
+      setLiveBuffer((b) => b.slice(0, -(deleted)));
       haptics.tick();
-    } else if (inputType === 'insertLineBreak' || inputType === 'insertParagraph') {
-      e.preventDefault();
-      onLiveEnter();
-      setLiveBuffer('');
-      haptics.click();
     }
-  };
 
-  // Handle Physical Keyboard & desktop fallback keys
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Backspace') {
-      e.preventDefault();
-      onLiveBackspace();
-      setLiveBuffer((prev) => prev.slice(0, -1));
-      haptics.tick();
-    } else if (e.key === 'Enter') {
+    prevValueRef.current = current;
+
+    // Periodically trim the textarea value to prevent unbounded growth
+    if (current.length > 200) {
+      el.value = current.slice(-50);
+      prevValueRef.current = el.value;
+    }
+  }, [onLiveInput, onLiveBackspace, haptics]);
+
+  // Handle Enter key specifically
+  const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === 'Enter') {
       e.preventDefault();
       onLiveEnter();
       setLiveBuffer('');
       haptics.click();
+      // Reset textarea
+      if (textareaRef.current) {
+        textareaRef.current.value = '';
+        prevValueRef.current = '';
+      }
     } else if (e.key === 'Tab') {
       e.preventDefault();
       onSendKey('tab');
@@ -97,7 +119,20 @@ export const QuickControls: React.FC<QuickControlsProps> = ({
       onSendKey('escape');
       haptics.tick();
     }
-  };
+  }, [onLiveEnter, onSendKey, haptics]);
+
+  const handleFocus = useCallback(() => {
+    setIsLiveActive(true);
+    // Reset state on focus
+    if (textareaRef.current) {
+      textareaRef.current.value = '';
+      prevValueRef.current = '';
+    }
+  }, []);
+
+  const handleBlur = useCallback(() => {
+    setIsLiveActive(false);
+  }, []);
 
   const handleBulkSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -110,11 +145,11 @@ export const QuickControls: React.FC<QuickControlsProps> = ({
   return (
     <div className="controls-container">
       {/* Live Real-Time Keyboard Card */}
-      <div className="control-card">
+      <div className="control-card" onClick={activateKeyboard} style={{ cursor: 'text' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div className="control-card-title">
             <Keyboard size={15} />
-            <span>Real-Time Live Keyboard</span>
+            <span>Real-Time Keyboard</span>
           </div>
           {isLiveActive && (
             <span className="status-badge connected" style={{ fontSize: '0.65rem' }}>
@@ -123,46 +158,42 @@ export const QuickControls: React.FC<QuickControlsProps> = ({
           )}
         </div>
 
-        <div style={{ position: 'relative' }}>
-          <input
-            ref={inputRef}
-            type="text"
-            className="live-keyboard-input"
-            placeholder="Tap here to open keyboard and type live..."
-            value=""
-            onFocus={() => setIsLiveActive(true)}
-            onBlur={() => setIsLiveActive(false)}
-            onBeforeInput={handleBeforeInput}
+        {/* Hidden textarea that captures all mobile keyboard input */}
+        <div className="live-keyboard-wrapper">
+          <textarea
+            ref={textareaRef}
+            className="live-keyboard-textarea"
+            onInput={handleInput}
             onKeyDown={handleKeyDown}
-            onChange={() => {}}
+            onFocus={handleFocus}
+            onBlur={handleBlur}
             autoComplete="off"
             autoCorrect="off"
             autoCapitalize="off"
-            spellCheck="false"
+            spellCheck={false}
+            enterKeyHint="send"
+            inputMode="text"
+            aria-label="Live keyboard input"
           />
+          <div
+            className={`live-keyboard-display ${isLiveActive ? 'focused' : ''}`}
+            onClick={activateKeyboard}
+          >
+            {isLiveActive
+              ? (liveBuffer || 'Typing... (keyboard open)')
+              : 'Tap here to open keyboard and type live...'
+            }
+          </div>
         </div>
 
         {liveBuffer && (
-          <div
-            style={{
-              padding: '6px 10px',
-              borderRadius: 'var(--radius-sm)',
-              background: 'rgba(255, 255, 255, 0.03)',
-              border: '1px solid var(--border-subtle)',
-              fontFamily: 'var(--font-mono)',
-              fontSize: '0.78rem',
-              color: 'var(--text-secondary)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-            }}
-          >
+          <div className="live-buffer-display">
             <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-              Transmitted: {liveBuffer}
+              Sent: {liveBuffer}
             </span>
             <button
-              onClick={() => setLiveBuffer('')}
-              style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}
+              onClick={(e) => { e.stopPropagation(); setLiveBuffer(''); }}
+              style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', fontSize: '0.72rem' }}
             >
               clear
             </button>
@@ -170,7 +201,7 @@ export const QuickControls: React.FC<QuickControlsProps> = ({
         )}
 
         {/* Essential PC Keys Toolbar */}
-        <div className="key-toolbar">
+        <div className="key-toolbar" onClick={(e) => e.stopPropagation()}>
           <button className="key-chip" onClick={() => { haptics.tick(); onSendKey('escape'); }}>Esc</button>
           <button className="key-chip" onClick={() => { haptics.tick(); onSendKey('tab'); }}>Tab</button>
           <button className="key-chip" onClick={() => { haptics.tick(); onSendKey('ctrl'); }}>Ctrl</button>
@@ -178,7 +209,7 @@ export const QuickControls: React.FC<QuickControlsProps> = ({
           <button className="key-chip" onClick={() => { haptics.heavy(); onSendKey('super'); }}>Win</button>
           <button className="key-chip" onClick={() => { haptics.tick(); onSendKey('delete'); }}>Del</button>
           <button className="key-chip" onClick={() => { haptics.tick(); onLiveBackspace(); }}>
-            <Delete size={13} style={{ verticalAlign: 'middle' }} /> Backspace
+            <Delete size={13} style={{ verticalAlign: 'middle' }} /> Bksp
           </button>
           <button className="key-chip" onClick={() => { haptics.click(); onLiveEnter(); }}>
             <CornerDownLeft size={13} style={{ verticalAlign: 'middle' }} /> Enter
@@ -186,7 +217,7 @@ export const QuickControls: React.FC<QuickControlsProps> = ({
         </div>
 
         {/* Directional & Nav Keys */}
-        <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+        <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }} onClick={(e) => e.stopPropagation()}>
           <button className="key-chip" style={{ flex: 1 }} onClick={() => { haptics.tick(); onSendKey('up'); }}>
             <ArrowUp size={14} style={{ margin: '0 auto' }} />
           </button>
@@ -202,7 +233,7 @@ export const QuickControls: React.FC<QuickControlsProps> = ({
         </div>
 
         {/* Common PC Shortcuts */}
-        <div className="key-toolbar">
+        <div className="key-toolbar" onClick={(e) => e.stopPropagation()}>
           <button className="key-chip" onClick={() => { haptics.click(); onSendKey('ctrl_c'); }}>
             <Copy size={12} style={{ verticalAlign: 'middle', marginRight: '4px' }} />Copy
           </button>
@@ -213,7 +244,7 @@ export const QuickControls: React.FC<QuickControlsProps> = ({
             <Undo2 size={12} style={{ verticalAlign: 'middle', marginRight: '4px' }} />Undo
           </button>
           <button className="key-chip" onClick={() => { haptics.click(); onSendKey('ctrl_a'); }}>
-            Select All
+            Sel All
           </button>
           <button className="key-chip" onClick={() => { haptics.heavy(); onSendKey('alt_f4'); }}>
             <XSquare size={12} style={{ verticalAlign: 'middle', marginRight: '4px' }} />Close

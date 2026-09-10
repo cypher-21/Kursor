@@ -16,9 +16,10 @@ import { useOrientation } from '../hooks/useOrientation';
 interface PresenterProps {
   onAction: (action: 'next' | 'prev' | 'start' | 'exit' | 'black' | 'white') => void;
   onLaser: (active: boolean, x?: number, y?: number, mode?: string) => void;
+  onMove: (dx: number, dy: number) => void;
 }
 
-export const Presenter: React.FC<PresenterProps> = ({ onAction, onLaser }) => {
+export const Presenter: React.FC<PresenterProps> = ({ onAction, onLaser, onMove }) => {
   const haptics = useHaptics();
 
   // Timer State
@@ -48,9 +49,9 @@ export const Presenter: React.FC<PresenterProps> = ({ onAction, onLaser }) => {
 
   const laserPadRef = useRef<HTMLDivElement>(null);
 
-  // Handle Gyro air-mouse
+  // Handle Gyro air-mouse: sends RELATIVE move deltas to move the host cursor
   const { requestPermission } = useOrientation(laserActive && gyroActive, (dx, dy) => {
-    onLaser(true, dx, dy, laserMode);
+    onMove(dx, dy);
   });
 
   const toggleLaser = async () => {
@@ -81,13 +82,11 @@ export const Presenter: React.FC<PresenterProps> = ({ onAction, onLaser }) => {
       {/* Stopwatch Timer Card */}
       <div className="timer-card">
         <div>
-          <div style={{ fontSize: '0.7rem', textTransform: 'uppercase', color: 'var(--text-muted)', letterSpacing: '0.6px' }}>
-            Presentation Time
-          </div>
+          <div className="timer-label">Presentation Time</div>
           <div className="timer-digits">{formatTime(seconds)}</div>
         </div>
 
-        <div className="timer-controls" style={{ display: 'flex', gap: '8px' }}>
+        <div className="timer-controls">
           <button
             className="icon-button"
             onClick={() => {
@@ -113,127 +112,104 @@ export const Presenter: React.FC<PresenterProps> = ({ onAction, onLaser }) => {
       </div>
 
       {/* Main Slide Navigation Row (Big Buttons) */}
-      <div className="slide-actions-grid">
-        <div className="slide-nav-row">
-          {/* Previous Slide Button */}
-          <button
-            className="slide-btn"
-            onClick={() => {
-              haptics.click();
-              onAction('prev');
-            }}
-          >
-            <ChevronLeft size={44} strokeWidth={2} color="var(--text-secondary)" />
-            <span className="slide-btn-label" style={{ color: 'var(--text-primary)' }}>
-              Previous
-            </span>
-            <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>Page Up</span>
-          </button>
-
-          {/* Next Slide Button (Dominant) */}
-          <button
-            className="slide-btn next-slide"
-            onClick={() => {
-              haptics.success();
-              onAction('next');
-            }}
-          >
-            <ChevronRight size={44} strokeWidth={2.4} color="#ffffff" />
-            <span className="slide-btn-label" style={{ color: '#ffffff' }}>
-              Next Slide
-            </span>
-            <span style={{ fontSize: '0.72rem', color: 'var(--text-secondary)' }}>Page Down</span>
-          </button>
-        </div>
-
-        {/* Laser Pointer Touch Track Area */}
-        <div
-          ref={laserPadRef}
-          style={{
-            height: '96px',
-            borderRadius: 'var(--radius-lg)',
-            border: laserActive ? '1px solid rgba(255, 255, 255, 0.4)' : '1px dashed var(--border-subtle)',
-            background: laserActive ? 'rgba(255, 255, 255, 0.05)' : 'var(--bg-surface)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            flexDirection: 'column',
-            gap: '6px',
-            position: 'relative',
-            touchAction: 'none',
-            transition: 'all 0.15s ease',
+      <div className="slide-nav-row">
+        {/* Previous Slide Button */}
+        <button
+          className="slide-btn prev-slide"
+          onClick={() => {
+            haptics.click();
+            onAction('prev');
           }}
-          onTouchMove={handleLaserTouchMove}
         >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <Crosshair size={18} color={laserActive ? '#ffffff' : 'var(--text-muted)'} />
-            <span
-              style={{
-                fontWeight: 600,
-                fontSize: '0.86rem',
-                color: laserActive ? '#ffffff' : 'var(--text-secondary)',
-              }}
-            >
-              {laserActive ? (gyroActive ? 'Air-Mouse Active (Tilt Phone)' : 'Laser Pad (Drag to aim)') : 'Digital Pointer Off'}
-            </span>
-          </div>
-          <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
-            {laserActive ? 'Beam visible on presentation display' : 'Tap Pointer button below to activate'}
+          <ChevronLeft size={36} strokeWidth={2} color="var(--text-secondary)" />
+          <span className="slide-btn-label">Previous</span>
+          <span className="slide-btn-sub">Page Up</span>
+        </button>
+
+        {/* Next Slide Button (Dominant) */}
+        <button
+          className="slide-btn next-slide"
+          onClick={() => {
+            haptics.success();
+            onAction('next');
+          }}
+        >
+          <ChevronRight size={36} strokeWidth={2.4} color="#ffffff" />
+          <span className="slide-btn-label" style={{ color: '#ffffff' }}>
+            Next Slide
+          </span>
+          <span className="slide-btn-sub" style={{ color: 'var(--text-secondary)' }}>Page Down</span>
+        </button>
+      </div>
+
+      {/* Laser Pointer Touch Track Area */}
+      <div
+        ref={laserPadRef}
+        className={`laser-pad ${laserActive ? 'active' : ''}`}
+        onTouchMove={handleLaserTouchMove}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <Crosshair size={16} color={laserActive ? '#ffffff' : 'var(--text-muted)'} />
+          <span className="laser-pad-label">
+            {laserActive ? (gyroActive ? 'Air-Mouse Active (Tilt Phone)' : 'Laser Pad (Drag to aim)') : 'Digital Pointer Off'}
           </span>
         </div>
+        <span className="laser-pad-hint">
+          {laserActive ? 'Beam visible on presentation display' : 'Tap Pointer button below to activate'}
+        </span>
+      </div>
 
-        {/* Secondary Presentation Tools */}
-        <div className="presentation-quick-tools">
-          <button
-            className={`tool-btn ${laserActive ? 'active' : ''}`}
-            onClick={toggleLaser}
-          >
-            <Crosshair size={16} />
-            <span>{laserActive ? 'Pointer ON' : 'Pointer'}</span>
-          </button>
+      {/* Secondary Presentation Tools */}
+      <div className="presentation-quick-tools">
+        <button
+          className={`tool-btn ${laserActive ? 'active' : ''}`}
+          onClick={toggleLaser}
+        >
+          <Crosshair size={16} />
+          <span>{laserActive ? 'Pointer ON' : 'Pointer'}</span>
+        </button>
 
-          <button
-            className={`tool-btn ${laserMode === 'spotlight' ? 'active' : ''}`}
-            onClick={() => {
-              const next = laserMode === 'laser' ? 'spotlight' : 'laser';
-              setLaserMode(next);
+        <button
+          className={`tool-btn ${laserMode === 'spotlight' ? 'active' : ''}`}
+          onClick={() => {
+            const next = laserMode === 'laser' ? 'spotlight' : 'laser';
+            setLaserMode(next);
+            haptics.click();
+            if (laserActive) {
+              onLaser(true, undefined, undefined, next);
+            }
+          }}
+          title="Switch Pointer Style"
+        >
+          <Sparkles size={16} />
+          <span>{laserMode === 'spotlight' ? 'Spotlight' : 'Dot'}</span>
+        </button>
+
+        <button
+          className={`tool-btn ${gyroActive ? 'active' : ''}`}
+          onClick={async () => {
+            const res = await requestPermission();
+            if (res) {
+              setGyroActive(!gyroActive);
               haptics.click();
-              if (laserActive) {
-                onLaser(true, undefined, undefined, next);
-              }
-            }}
-            title="Switch Pointer Style"
-          >
-            <Sparkles size={16} />
-            <span>{laserMode === 'laser' ? 'Dot' : 'Spotlight'}</span>
-          </button>
+            }
+          }}
+        >
+          <Compass size={16} />
+          <span>Air-Mouse</span>
+        </button>
 
-          <button
-            className={`tool-btn ${gyroActive ? 'active' : ''}`}
-            onClick={async () => {
-              const res = await requestPermission();
-              if (res) {
-                setGyroActive(!gyroActive);
-                haptics.click();
-              }
-            }}
-          >
-            <Compass size={16} />
-            <span>Air-Mouse</span>
-          </button>
-
-          <button
-            className="tool-btn"
-            onClick={() => {
-              haptics.click();
-              onAction('start');
-            }}
-            title="Start Slideshow (F5)"
-          >
-            <Maximize2 size={16} />
-            <span>F5 Start</span>
-          </button>
-        </div>
+        <button
+          className="tool-btn"
+          onClick={() => {
+            haptics.click();
+            onAction('start');
+          }}
+          title="Start Slideshow (F5)"
+        >
+          <Maximize2 size={16} />
+          <span>F5 Start</span>
+        </button>
       </div>
     </div>
   );

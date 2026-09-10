@@ -9,7 +9,7 @@
   --border-subtle: rgba(255, 255, 255, 0.16);
   --border-medium: rgba(255, 255, 255, 0.28);
   --border-strong: rgba(255, 255, 255, 0.45);
-  --border-focus: rgba(255, 255, 255, 0.6);
+  --border-focus: rgba(255, 255, 255, 0.65);
 
   --text-primary: #ffffff;
   --text-secondary: #e4e4e7;
@@ -41,6 +41,7 @@
 html, body {
   width: 100%;
   height: 100%;
+  height: 100dvh;
   overflow: hidden;
   background-color: var(--bg-main);
   color: var(--text-primary);
@@ -51,9 +52,31 @@ html, body {
 #root {
   width: 100%;
   height: 100%;
+  height: 100dvh;
   display: flex;
   flex-direction: column;
   background: var(--bg-main);
+}
+
+.app-shell {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  height: 100dvh;
+  overflow: hidden;
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-left: env(safe-area-inset-left, 0px);
+  padding-right: env(safe-area-inset-right, 0px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+.main-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
 }
 
 /* Glassmorphism Panel */
@@ -70,7 +93,7 @@ html, body {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 10px 16px;
+  padding: 10px 14px;
   height: 52px;
   background: rgba(8, 8, 10, 0.95);
   backdrop-filter: blur(20px);
@@ -84,6 +107,7 @@ html, body {
   display: flex;
   align-items: center;
   gap: 8px;
+  min-width: 0;
 }
 
 .brand-logo {
@@ -97,6 +121,7 @@ html, body {
   justify-content: center;
   font-weight: 700;
   border: 1px solid rgba(255, 255, 255, 0.3);
+  flex-shrink: 0;
 }
 
 .brand-name {
@@ -104,20 +129,29 @@ html, body {
   font-size: 1.05rem;
   letter-spacing: -0.3px;
   color: #ffffff;
+  white-space: nowrap;
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
 }
 
 .status-badge {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  font-size: 0.74rem;
+  gap: 5px;
+  font-size: 0.72rem;
   font-weight: 600;
-  padding: 4px 10px;
+  padding: 4px 8px;
   border-radius: var(--radius-full);
   background: var(--bg-glass-subtle);
   border: 1.5px solid var(--border-subtle);
   color: var(--text-secondary);
   transition: all 0.15s ease;
+  white-space: nowrap;
 }
 
 .status-badge.connected {
@@ -133,8 +167,8 @@ html, body {
 }
 
 .pulse-dot {
-  width: 7px;
-  height: 7px;
+  width: 6px;
+  height: 6px;
   border-radius: 50%;
   background-color: currentColor;
 }
@@ -275,6 +309,7 @@ html, body {
   z-index: 999 !important;
   width: 100vw !important;
   height: 100vh !important;
+  height: 100dvh !important;
   padding: 0 !important;
   border-radius: 0 !important;
   background: #000000 !important;
@@ -295,49 +330,57 @@ html, body {
   border: 1.5px solid var(--border-medium);
 }
 
-/* Presenter View */
+/* Presenter View (Portrait Default) */
 .presenter-container {
   flex: 1;
   display: flex;
   flex-direction: column;
-  padding: 12px;
-  gap: 12px;
+  padding: 10px 12px;
+  gap: 10px;
   min-height: 0;
   background: var(--bg-main);
+  padding-bottom: max(10px, env(safe-area-inset-bottom, 0px));
 }
 
 .timer-card {
   background: #0e0e13;
   border: 1.5px solid var(--border-medium);
   border-radius: var(--radius-lg);
-  padding: 12px 18px;
+  padding: 10px 16px;
   display: flex;
   align-items: center;
   justify-content: space-between;
   flex-shrink: 0;
 }
 
+.timer-label {
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  letter-spacing: 0.6px;
+  margin-bottom: 2px;
+}
+
 .timer-digits {
   font-family: var(--font-mono);
-  font-size: 2.1rem;
+  font-size: 2rem;
   font-weight: 700;
   color: #ffffff;
   letter-spacing: -0.5px;
+  line-height: 1;
 }
 
-.slide-actions-grid {
-  flex: 1;
+.timer-controls {
   display: flex;
-  flex-direction: column;
-  gap: 12px;
-  min-height: 0;
+  align-items: center;
+  gap: 8px;
 }
 
 .slide-nav-row {
   flex: 1;
   display: flex;
-  gap: 12px;
-  min-height: 0;
+  gap: 10px;
+  min-height: 130px;
 }
 
 .slide-btn {
@@ -352,6 +395,7 @@ html, body {
   gap: 8px;
   cursor: pointer;
   transition: all 0.12s ease;
+  min-height: 100px;
 }
 
 .slide-btn:active {
@@ -366,10 +410,51 @@ html, body {
 }
 
 .slide-btn-label {
-  font-size: 1.15rem;
+  font-size: 1.12rem;
   font-weight: 700;
   letter-spacing: -0.2px;
   color: #ffffff;
+}
+
+.slide-btn-sub {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+}
+
+.laser-pad {
+  height: 80px;
+  flex-shrink: 0;
+  border-radius: var(--radius-lg);
+  border: 1.5px dashed var(--border-subtle);
+  background: var(--bg-surface);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 4px;
+  position: relative;
+  touch-action: none;
+  transition: all 0.15s ease;
+}
+
+.laser-pad.active {
+  border: 1.5px solid rgba(255, 255, 255, 0.45);
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.laser-pad-label {
+  font-weight: 600;
+  font-size: 0.84rem;
+  color: var(--text-secondary);
+}
+
+.laser-pad.active .laser-pad-label {
+  color: #ffffff;
+}
+
+.laser-pad-hint {
+  font-size: 0.68rem;
+  color: var(--text-muted);
 }
 
 .presentation-quick-tools {
@@ -410,6 +495,7 @@ html, body {
   gap: 12px;
   overflow-y: auto;
   background: var(--bg-main);
+  padding-bottom: max(12px, env(safe-area-inset-bottom, 0px));
 }
 
 .control-card {
@@ -495,21 +581,61 @@ html, body {
 }
 
 /* Live Keyboard Card */
-.live-keyboard-input {
+.live-keyboard-wrapper {
+  position: relative;
+  width: 100%;
+}
+
+.live-keyboard-textarea {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  z-index: 2;
+  resize: none;
+  border: none;
+  outline: none;
+  font-size: 16px; /* Prevents mobile browser auto-zoom */
+  cursor: text;
+}
+
+.live-keyboard-display {
   width: 100%;
   background: #000000;
   border: 1.5px solid var(--border-medium);
   border-radius: var(--radius-md);
-  padding: 12px;
-  color: #ffffff;
+  padding: 12px 14px;
+  color: var(--text-muted);
   font-family: var(--font-sans);
-  font-size: 0.94rem;
-  outline: none;
-  transition: border-color 0.15s ease;
+  font-size: 0.92rem;
+  min-height: 48px;
+  display: flex;
+  align-items: center;
+  transition: all 0.15s ease;
+  user-select: text;
+  -webkit-user-select: text;
+  word-break: break-word;
 }
 
-.live-keyboard-input:focus {
-  border-color: var(--border-strong);
+.live-keyboard-display.focused {
+  border-color: var(--border-focus);
+  color: #ffffff;
+  box-shadow: 0 0 0 1px var(--border-focus);
+}
+
+.live-buffer-display {
+  padding: 6px 10px;
+  border-radius: var(--radius-sm);
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--border-subtle);
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
 }
 
 .key-toolbar {
@@ -612,10 +738,10 @@ html, body {
 /* ─────────────────────────────────────────────────────────────────────────────
    RESPONSIVE LANDSCAPE & COMPACT SCREEN OPTIMIZATIONS
    ───────────────────────────────────────────────────────────────────────────── */
-@media (orientation: landscape) and (max-height: 540px) {
+@media (orientation: landscape) and (max-height: 560px) {
   .app-header {
     height: 38px;
-    padding: 6px 14px;
+    padding: 4px 12px;
   }
 
   .brand-logo {
@@ -624,11 +750,16 @@ html, body {
   }
 
   .brand-name {
-    font-size: 0.9rem;
+    font-size: 0.88rem;
+  }
+
+  .status-badge {
+    padding: 2px 7px;
+    font-size: 0.68rem;
   }
 
   .nav-tab-container {
-    padding: 4px 8px;
+    padding: 3px 8px;
     gap: 4px;
   }
 
@@ -637,9 +768,89 @@ html, body {
     font-size: 0.75rem;
   }
 
+  /* Two-column layout for Presenter in landscape:
+     Left: Big Previous & Next Slide buttons
+     Right: Compact Timer, Laser Pad, Quick Tools */
+  .presenter-container {
+    display: grid;
+    grid-template-columns: 1.25fr 1fr;
+    grid-template-rows: auto 1fr auto;
+    grid-template-areas:
+      "slides timer"
+      "slides laser"
+      "slides tools";
+    gap: 8px 12px;
+    padding: 6px 12px;
+    padding-bottom: max(6px, env(safe-area-inset-bottom, 0px));
+  }
+
+  .slide-nav-row {
+    grid-area: slides;
+    height: 100%;
+    min-height: 0;
+    gap: 8px;
+  }
+
+  .slide-btn {
+    min-height: 0;
+    height: 100%;
+    gap: 4px;
+    padding: 8px;
+  }
+
+  .slide-btn-label {
+    font-size: 0.95rem;
+  }
+
+  .slide-btn-sub {
+    font-size: 0.65rem;
+  }
+
+  .timer-card {
+    grid-area: timer;
+    padding: 4px 12px;
+    height: auto;
+  }
+
+  .timer-label {
+    font-size: 0.62rem;
+    margin-bottom: 0;
+  }
+
+  .timer-digits {
+    font-size: 1.3rem;
+  }
+
+  .laser-pad {
+    grid-area: laser;
+    height: 100%;
+    min-height: 48px;
+    padding: 4px 8px;
+  }
+
+  .laser-pad-label {
+    font-size: 0.78rem;
+  }
+
+  .laser-pad-hint {
+    display: none;
+  }
+
+  .presentation-quick-tools {
+    grid-area: tools;
+    gap: 6px;
+  }
+
+  .tool-btn {
+    padding: 6px 2px;
+    font-size: 0.68rem;
+    gap: 3px;
+  }
+
   .trackpad-container {
     padding: 6px 10px;
     gap: 6px;
+    padding-bottom: max(6px, env(safe-area-inset-bottom, 0px));
   }
 
   .mouse-buttons-bar {
@@ -651,33 +862,14 @@ html, body {
     font-size: 0.76rem;
   }
 
-  .presenter-container {
-    padding: 8px;
+  .controls-container {
+    padding: 8px 12px;
     gap: 8px;
+    padding-bottom: max(8px, env(safe-area-inset-bottom, 0px));
   }
 
-  .timer-card {
-    padding: 6px 14px;
-  }
-
-  .timer-digits {
-    font-size: 1.4rem;
-  }
-
-  .slide-actions-grid {
+  .control-card {
+    padding: 10px;
     gap: 8px;
-  }
-
-  .slide-btn-label {
-    font-size: 0.9rem;
-  }
-
-  .presentation-quick-tools {
-    gap: 6px;
-  }
-
-  .tool-btn {
-    padding: 6px 2px;
-    font-size: 0.68rem;
   }
 }
