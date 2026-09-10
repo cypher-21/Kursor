@@ -7,8 +7,7 @@ interface HeaderProps {
   serverName: string;
   latency: number | null;
   status: SystemStatus;
-  canInstall?: boolean;
-  onInstall?: () => void;
+  onOpenInstall: () => void;
   onOpenConnect: () => void;
   onOpenSettings: () => void;
   isFullscreen?: boolean;
@@ -20,8 +19,7 @@ export const Header: React.FC<HeaderProps> = ({
   serverName,
   latency,
   status,
-  canInstall,
-  onInstall,
+  onOpenInstall,
   onOpenConnect,
   onOpenSettings,
   isFullscreen,
@@ -56,7 +54,7 @@ export const Header: React.FC<HeaderProps> = ({
 
         {/* Latency badge */}
         {connected && latency !== null && (
-          <div className="status-badge" style={{ color: '#a1a1aa' }}>
+          <div className="status-badge" style={{ color: '#e4e4e7' }}>
             <Zap size={11} />
             <span>{latency}ms</span>
           </div>
@@ -64,11 +62,28 @@ export const Header: React.FC<HeaderProps> = ({
 
         {/* Host Laptop Battery */}
         {status.battery !== null && (
-          <div className="status-badge" style={{ color: '#a1a1aa' }}>
+          <div className="status-badge" style={{ color: '#e4e4e7' }}>
             {status.charging ? <BatteryCharging size={13} color="#10b981" /> : <Battery size={13} />}
             <span>{status.battery}%</span>
           </div>
         )}
+
+        {/* Install App / APK Button (Always Visible) */}
+        <button
+          className="status-badge"
+          style={{
+            cursor: 'pointer',
+            background: 'rgba(255, 255, 255, 0.12)',
+            borderColor: 'var(--border-medium)',
+            color: '#ffffff',
+            fontWeight: 700,
+          }}
+          onClick={onOpenInstall}
+          title="Install App / Download APK"
+        >
+          <Download size={13} />
+          <span>Install</span>
+        </button>
 
         {/* Fullscreen Toggle */}
         {onToggleFullscreen && (
@@ -79,25 +94,6 @@ export const Header: React.FC<HeaderProps> = ({
             title={isFullscreen ? 'Exit Fullscreen' : 'Fullscreen Trackpad'}
           >
             {isFullscreen ? <Minimize2 size={15} /> : <Maximize2 size={15} />}
-          </button>
-        )}
-
-        {/* Install Native PWA Button */}
-        {canInstall && onInstall && (
-          <button
-            className="status-badge"
-            style={{
-              cursor: 'pointer',
-              background: 'rgba(255, 255, 255, 0.08)',
-              borderColor: 'rgba(255, 255, 255, 0.18)',
-              color: '#ffffff',
-              fontWeight: 500,
-            }}
-            onClick={onInstall}
-            title="Install Kursor on your device"
-          >
-            <Download size={12} />
-            <span>Install</span>
           </button>
         )}
 

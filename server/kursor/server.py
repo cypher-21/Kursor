@@ -58,12 +58,34 @@ class KursorServer:
         self.app.router.add_get("/ws", self.handle_websocket)
         self.app.router.add_get("/api/info", self.handle_info)
         self.app.router.add_get("/api/status", self.handle_status)
+        self.app.router.add_get("/api/download-apk", self.handle_download_apk)
 
         # Serve static web remote
         if self.static_dir.exists():
             self.app.router.add_static("/assets", self.static_dir / "assets", show_index=False)
             self.app.router.add_get("/", self.handle_index)
             self.app.router.add_get("/{tail:.*}", self.handle_fallback)
+
+    async def handle_download_apk(self, request: web.Request) -> web.Response:
+        candidates = [
+            self.static_dir / "kursor-remote.apk",
+            Path(__file__).resolve().parent.parent.parent / "android" / "kursor-remote.apk",
+            Path(__file__).resolve().parent.parent.parent / "android" / "android" / "app" / "build" / "outputs" / "apk" / "debug" / "app-debug.apk",
+        ]
+        for candidate in candidates:
+            if candidate.is_file():
+                return web.FileResponse(
+                    candidate,
+                    headers={
+                        "Content-Disposition": 'attachment; filename="kursor-remote.apk"',
+                        "Content-Type": "application/vnd.android.package-archive"
+                    }
+                )
+        return web.Response(
+            text="APK file is being generated. You can also install directly via Chrome: tap three dots (⋮) > Add to Home screen.",
+            status=404,
+            content_type="text/plain"
+        )
 
     async def handle_index(self, request: web.Request) -> web.Response:
         index_file = self.static_dir / "index.html"

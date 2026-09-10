@@ -1,9 +1,13 @@
-const CACHE_NAME = 'mousely-v1';
+const CACHE_NAME = 'kursor-v2';
 const ASSETS = [
   '/',
   '/index.html',
+  '/manifest.json',
   '/favicon.svg',
-  '/manifest.json'
+  '/icon-192.png',
+  '/icon-512.png',
+  '/icon-maskable-192.png',
+  '/icon-maskable-512.png'
 ];
 
 self.addEventListener('install', (event) => {
@@ -27,7 +31,7 @@ self.addEventListener('activate', (event) => {
 });
 
 self.addEventListener('fetch', (event) => {
-  // Let WebSocket and API requests pass through network
+  // Let WebSocket and API requests pass directly to the server
   if (event.request.url.includes('/ws') || event.request.url.includes('/api/')) {
     return;
   }

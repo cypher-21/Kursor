@@ -6,6 +6,7 @@ import { Presenter } from './components/Presenter';
 import { QuickControls } from './components/QuickControls';
 import { ConnectionModal } from './components/ConnectionModal';
 import { SettingsModal } from './components/SettingsModal';
+import { InstallModal } from './components/InstallModal';
 import { useSocket } from './hooks/useSocket';
 import { useHaptics } from './hooks/useHaptics';
 
@@ -13,6 +14,7 @@ export function App() {
   const [activeTab, setActiveTab] = useState<'trackpad' | 'presenter' | 'controls'>('trackpad');
   const [showConnectModal, setShowConnectModal] = useState(false);
   const [showSettingsModal, setShowSettingsModal] = useState(false);
+  const [showInstallModal, setShowInstallModal] = useState(false);
   const [isFullscreenTrackpad, setIsFullscreenTrackpad] = useState(false);
 
   // Settings
@@ -84,8 +86,7 @@ export function App() {
           serverName={socket.serverName}
           latency={socket.latency}
           status={socket.systemStatus}
-          canInstall={Boolean(deferredPrompt)}
-          onInstall={handleInstallApp}
+          onOpenInstall={() => setShowInstallModal(true)}
           onOpenConnect={() => setShowConnectModal(true)}
           onOpenSettings={() => setShowSettingsModal(true)}
           isFullscreen={isFullscreenTrackpad}
@@ -168,6 +169,13 @@ export function App() {
       </main>
 
       {/* Modals */}
+      <InstallModal
+        isOpen={showInstallModal}
+        onClose={() => setShowInstallModal(false)}
+        canPrompt={Boolean(deferredPrompt)}
+        onPromptInstall={handleInstallApp}
+      />
+
       <ConnectionModal
         isOpen={showConnectModal}
         onClose={() => setShowConnectModal(false)}
