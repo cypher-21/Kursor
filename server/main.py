@@ -97,7 +97,6 @@ def main():
     # Headless CLI loop
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
-    server = KursorServer(port=args.port, static_dir=args.static)
     loop.run_until_complete(server.start())
     try:
         loop.run_forever()

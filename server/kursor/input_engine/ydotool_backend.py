@@ -12,11 +12,19 @@ class YdotoolBackend(InputBackend):
     def __init__(self):
         if not shutil.which("ydotool"):
             raise RuntimeError("ydotool binary not found in PATH")
+        self.remainder_x = 0.0
+        self.remainder_y = 0.0
+        self.remainder_scroll_y = 0.0
         print("[YdotoolBackend] Initialized ydotool backend")
 
     def move(self, dx: float, dy: float) -> None:
-        ix, iy = int(dx), int(dy)
+        self.remainder_x += dx
+        self.remainder_y += dy
+        ix = int(self.remainder_x)
+        iy = int(self.remainder_y)
         if ix != 0 or iy != 0:
+            self.remainder_x -= ix
+            self.remainder_y -= iy
             subprocess.run(["ydotool", "mousemove", "-x", str(ix), "-y", str(iy)], capture_output=True)
 
     def click(self, button: str = "left", state: str = "click") -> None:
@@ -34,8 +42,10 @@ class YdotoolBackend(InputBackend):
             subprocess.run(["ydotool", "click", btn_code], capture_output=True)
 
     def scroll(self, dx: float, dy: float) -> None:
-        steps_y = int(dy)
+        self.remainder_scroll_y += dy
+        steps_y = int(self.remainder_scroll_y)
         if steps_y != 0:
+            self.remainder_scroll_y -= steps_y
             subprocess.run(["ydotool", "mousemove", "-w", str(steps_y)], capture_output=True)
 
     def press_key(self, key_name: str) -> None:
