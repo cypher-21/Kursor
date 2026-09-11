@@ -1,143 +1,165 @@
-# Kursor - Wireless Trackpad & Presentation Remote
+# Kursor - Universal Wireless Trackpad & Presentation Remote
 
-Turn your Android smartphone into a high-precision wireless trackpad, presentation remote, and media controller for your Windows or Linux PC.
+Turn your Android or iOS smartphone into a high-precision wireless trackpad, presentation clicker, and media controller for your Windows or Linux PC over local Wi-Fi.
 
-An open-source desktop control system engineered for **Windows** (10/11) and **Linux** (Wayland & X11) with a companion **Android** client (Web App & Native APK).
+An open-source desktop control system engineered for **Windows** (10/11) and **Linux** (Wayland & X11) with a companion **zero-install Web Remote / PWA** that runs directly in any modern mobile browser.
 
 ---
 
-## Features
+## ✨ Features
 
 - **Multi-Touch Trackpad**:
-  - **1-Finger Drag**: Smooth cursor motion with natural acceleration curves.
-  - **1-Finger Tap**: Left-click with instant haptic feedback.
+  - **1-Finger Drag**: Smooth, responsive cursor motion with natural acceleration curves.
+  - **1-Finger Tap**: Instant left-click with tactile haptic vibration.
   - **2-Finger Tap**: Right-click context menu.
-  - **2-Finger Drag & Edge Ribbon**: Precise vertical and horizontal scrolling.
-  - **Dedicated Fullscreen Mode**: 1-tap dedicated canvas mode utilizing 100% of your phone display in portrait or landscape.
-  - **3-Finger Gestures**:
+  - **Calibrated Scrolling**: Smooth two-finger scrolling and dedicated edge **Scroll Ribbon** calibrated to feel like a real mouse wheel (~25px per notch) without wild skipping.
+  - **Configurable Sensitivity**: Real-time adjustable Cursor Sensitivity and Scroll Sensitivity sliders.
+  - **Natural vs. Traditional Scrolling**: 1-tap toggle for reverse or natural scroll direction.
+  - **3-Finger Desktop Gestures**:
     - Swipe Up: Task View / Overview (Super / Win key).
     - Swipe Down: Show Desktop (Win+D / Super+D).
-    - Swipe Left / Right: Switch virtual desktops.
-  - **Tactile Buttons**: Dedicated Left, Middle, and Right click buttons.
-
-- **Real-Time Live Keyboard**:
-  - Direct live keystroke transmission from Android virtual keyboard (Gboard, Samsung Keyboard, etc.) and physical keyboards.
-  - Characters, backspaces, and enters transmit immediately without needing a separate submit button.
-  - Virtual PC modifier keys: Esc, Tab, Ctrl, Alt, Win, Del, arrow navigation keys, and common shortcuts (Ctrl+C, Ctrl+V, Ctrl+Z, Ctrl+A, Alt+F4).
-  - Bulk text paste option for transmitting complete messages or URLs.
+    - Swipe Left / Right: Switch virtual workspaces.
+  - **Physical Buttons Bar**: Dedicated Left, Middle, and Right mouse buttons.
 
 - **Presentation Remote**:
-  - Ergonomic Next Slide and Previous Slide buttons (PageDown / PageUp).
-  - Presentation stopwatch timer with pause and reset controls.
-  - Slideshow shortcuts: Start (F5), Exit (Esc), Blank screen (B/W).
-  - Digital Laser Pointer & Spotlight: On-screen real-time pointer reticle or spotlight overlay.
-  - Air-Mouse Mode: Control the pointer by tilting your smartphone using the gyroscope.
+  - Compact ergonomic **Next Slide** and **Previous Slide** buttons (PageDown / PageUp).
+  - Integrated **Mouse Touchpad**: Large dedicated touch area on the presenter screen allowing seamless mouse control and slide navigation simultaneously.
+  - **Stopwatch Timer**: Clean countdown/presentation timer with start, pause, and reset.
+  - **Quick Presentation Keys**: Start Slideshow (F5), Exit (Esc), Blank Screen (Black/White).
+  - **Air-Mouse & Laser Pointer**: Tilt-to-move pointer overlay using phone gyroscope sensors.
 
-- **System Controls**:
-  - Master volume slider with mute toggle.
-  - Media player deck: Previous, Play/Pause, Next.
-  - Do Not Disturb (DND) toggle.
+- **System Controls & Live Typing**:
+  - Master volume slider with instant mute toggle.
+  - Media player deck: Previous, Play/Pause, Next track.
+  - Do Not Disturb (DND) notification toggle.
+  - **Live Keyboard Input**: Keystrokes, backspaces, and enters transmit immediately to the active PC window with exact casing and Unicode support (bypasses host Caps Lock).
+  - Virtual PC Modifier Keys: Esc, Tab, Ctrl, Alt, Win, Del, navigation arrows, and common shortcuts (Ctrl+C, Ctrl+V, Ctrl+Z, Ctrl+A, Alt+F4).
 
-- **Cross-Platform Desktop Engines**:
-  - **Windows**: Native Win32 API integration (`ctypes.windll.user32.mouse_event`) ensuring zero-lag cursor and click response.
-  - **Linux**: Direct kernel-level `/dev/uinput` virtual device driver, operating natively across Wayland (GNOME, KDE Plasma, Sway, Hyprland) and X11 without display server dependencies.
+- **High-Performance Desktop Engines**:
+  - **Windows**: Native Win32 API (`ctypes.windll.user32`) input driver with sub-notch wheel delta accumulation for lag-free cursor tracking.
+  - **Linux**: Direct kernel-level `/dev/uinput` virtual device driver, operating natively across Wayland (GNOME, KDE Plasma, Sway, Hyprland) and X11 without root privileges at runtime. Fallback drivers for `ydotool` and `pynput` included.
 
-- **Instant Zero-Config Pairing**:
-  - Automatic LAN discovery via UDP beacon.
-  - Visual QR code displayed in the desktop GUI and directly in the terminal (for headless or SSH sessions).
-  - Self-hosted Web Remote: Served directly by the PC on port 8765. Zero app installation required.
-  - Native standalone Android APK project ready to compile with Gradle.
+- **Zero-Config LAN Pairing**:
+  - Automatic local network discovery via UDP broadcast beacon.
+  - High-contrast visual QR code on desktop GUI and ASCII QR code in terminal for headless/SSH setups.
+  - Self-hosted Web Remote served directly on port `8765`. Zero app installation required on the phone.
 
 ---
 
-## Quick Start
+## 🚀 Quick Start
 
 ### Windows
 
-Double-click `start-windows.bat` in the repository root, or run:
+#### 1. Standard Launch (Clean GUI)
+Simply double-click **`start-windows.bat`** in the project folder.
+- Launches the sleek **Kursor Desktop** pairing window.
+- The command prompt closes automatically—no lingering black console window.
+- Includes **Quick Settings** sliders to adjust Pointer Speed and Scroll Speed in real-time.
 
+#### 2. Terminal Mode (With Live Logs)
+Double-click **`start-cli.bat`** or run:
 ```cmd
-cd server
-pip install -r requirements.txt
-python main.py
+start-windows.bat --cli
 ```
+Displays live connection logs, client IP notifications, and an ASCII QR code directly in the terminal.
+
+---
 
 ### Linux
 
-From the repository root, simply run:
-
-```bash
-chmod +x start-linux.sh
-./start-linux.sh
-```
-
-Or run headless / custom port:
-
-```bash
-./start-linux.sh --cli
-./start-linux.sh --port 9000
-```
-
-### Connect from Phone (Android & iOS)
-
-1. Ensure your phone and computer are connected to the same Wi-Fi network.
-2. Scan the QR code displayed in the Kursor window or terminal with your phone camera.
-3. The Kursor remote opens immediately in your mobile browser with zero installation required.
-4. Tap **"Install"** or **"Add to Home screen"** in the header to run it full-screen without browser URL bars!
-
----
-
-## Linux Kernel /dev/uinput Configuration
-
-To run Kursor on Linux without requiring `sudo` on every launch:
-
+#### 1. One-Time Kernel Permission Setup
+To allow Kursor to inject input events without running as `sudo`:
 ```bash
 cd server
-sudo ./setup-uinput.sh
+chmod +x setup-uinput.sh
+./setup-uinput.sh
 ```
+*(Log out and log back in once after running this script to apply the `input` group permissions).*
 
-This loads the `uinput` kernel module and configures udev rules for the `input` group. See [docs/LINUX_SETUP.md](docs/LINUX_SETUP.md) for detailed distributions instructions.
+#### 2. Launching Kursor
+```bash
+./start-linux.sh
+```
+- If a desktop display is available, opens the **Kursor Desktop** pairing GUI.
+- For headless servers, Raspberry Pi, or SSH sessions, run:
+  ```bash
+  ./start-linux.sh --cli
+  ```
 
 ---
 
-## Project Structure
+### Connecting Your Phone (Android & iOS)
+
+1. Connect your smartphone to the same Wi-Fi network (or phone personal hotspot) as your computer.
+2. Scan the QR code displayed on the Kursor desktop window using your phone's camera.
+3. The Kursor remote opens immediately in your mobile browser.
+4. **Fullscreen / PWA Mode**:
+   - **Android (Chrome)**: Tap `⋮` (menu) -> **"Add to Home screen"** or **"Install app"**.
+   - **iOS (Safari)**: Tap Share icon -> **"Add to Home Screen"**.
+   - Or tap the dedicated **Fullscreen** icon in the header to expand 100% edge-to-edge!
+
+---
+
+## 📁 Project Structure
 
 ```
 mouse/
 ├── android/                         # Web Remote Client (React 19, TypeScript, Vite, PWA)
 │   ├── src/
-│   │   ├── components/              # Trackpad, QuickControls, Presenter, Header, Modals
+│   │   ├── components/              # Trackpad, Presenter, QuickControls, Header, Modals
 │   │   ├── hooks/                   # useSocket, useHaptics, useOrientation
-│   │   └── index.css                # High-contrast OLED dark theme & crisp outlines
+│   │   └── index.css                # Dark theme design system & responsive layout
 │   ├── public/                      # App icons, manifest.json, sw.js
-│   └── dist/                        # Production compiled web assets
+│   ├── dist/                        # Production compiled web assets
+│   └── README.md                    # Frontend documentation & development guide
 │
 ├── server/                          # Cross-Platform Desktop Server (Windows & Linux)
 │   ├── kursor/
-│   │   ├── server.py                # WebSocket & HTTP server
+│   │   ├── server.py                # WebSocket server & dynamic sensitivity engine
+│   │   ├── gui.py                   # Desktop pairing GUI with live Quick Settings
 │   │   ├── discovery.py             # UDP beacon & auto-discovery responder
-│   │   ├── input_engine/            # Win32, kernel uinput (Wayland), X11/pynput
-│   │   ├── system_controls.py       # Audio, media, and notification controls
+│   │   ├── input_engine/            # Win32, kernel uinput (Wayland), ydotool, X11
+│   │   ├── system_controls.py       # Volume, media, and notification controls
 │   │   ├── laser_overlay.py         # On-screen transparent laser pointer / spotlight
-│   │   ├── gui.py                   # Desktop GUI with QR code pairing
 │   │   └── config.py                # Configuration and settings persistence
-│   ├── setup-uinput.sh              # Linux kernel uinput permissions script
+│   ├── setup-uinput.sh              # Linux kernel uinput permissions setup
 │   ├── kursor.service               # Linux systemd service unit
-│   ├── install.sh                   # Linux installer script
-│   ├── start-linux.sh               # Linux launcher script
-│   └── main.py                      # Server entrypoint
-├── docs/
-│   ├── WINDOWS_SETUP.md             # Windows setup instructions
-│   ├── LINUX_SETUP.md               # Linux distribution and permissions guide
-│   ├── ANDROID_BUILD.md             # Native APK build & PWA guide
-│   └── PROTOCOL.md                  # Protocol specification
+│   ├── install.sh                   # Linux automated installer
+│   ├── start-linux.sh               # Linux launcher helper
+│   ├── requirements.txt             # Python dependencies
+│   └── main.py                      # Desktop application entrypoint
 │
-├── start-windows.bat                # 1-click Windows launcher
-└── start-linux.sh                  # 1-click Linux launcher
+├── docs/
+│   ├── WINDOWS_SETUP.md             # Windows setup & key mapping guide
+│   ├── LINUX_SETUP.md               # Linux distributions & Wayland/X11 guide
+│   ├── ANDROID_BUILD.md             # Mobile PWA & home screen guide
+│   └── PROTOCOL.md                  # WebSocket & UDP protocol specification
+│
+├── start-windows.bat                # 1-click clean Windows GUI launcher (pythonw)
+├── start-cli.bat                    # 1-click Windows Terminal/CLI launcher
+└── start-linux.sh                  # 1-click Linux universal launcher
 ```
 
 ---
 
-## Protocol
+## ⚙️ Configuration & Customization
 
-Kursor uses a low-latency binary/JSON WebSocket protocol on port `8765` and a lightweight UDP discovery beacon on port `8766`. For packet structures and message flows, see [docs/PROTOCOL.md](docs/PROTOCOL.md).
+Settings are automatically saved to `~/.config/kursor/config.json`:
+
+| Setting | Default | Description |
+|---|---|---|
+| `mouse_sensitivity` | `1.2` | Base cursor movement speed multiplier |
+| `mouse_acceleration` | `1.15` | Cursor acceleration factor for fast finger flicks |
+| `scroll_sensitivity` | `1.0` | Mouse wheel scroll speed multiplier |
+| `invert_scroll` | `false` | Traditional vs. Natural scrolling direction |
+| `port` | `8765` | WebSocket and HTTP listening port |
+| `udp_discovery_port` | `8766` | UDP LAN beacon port |
+| `preferred_backend` | `"auto"` | Input engine (`auto`, `uinput`, `ydotool`, `x11`) |
+
+Sliders in the Desktop GUI and Mobile Web Remote adjust these parameters in real time without restarting the server.
+
+---
+
+## 📄 License
+
+MIT License. Open source and free for personal and commercial use.
