@@ -71,16 +71,17 @@ def main():
     has_display = bool(os.environ.get("DISPLAY") or os.environ.get("WAYLAND_DISPLAY") or sys.platform == "win32")
     start_gui = (args.gui or (has_display and not args.cli))
 
+    server = KursorServer(port=args.port, static_dir=args.static)
+
     if start_gui:
         try:
             from kursor.gui import KursorGUI
-            gui_app = KursorGUI(port=args.port)
+            gui_app = KursorGUI(port=args.port, server=server)
 
             # Run server in asyncio background thread
             def run_server():
                 loop = asyncio.new_event_loop()
                 asyncio.set_event_loop(loop)
-                server = KursorServer(port=args.port, static_dir=args.static)
                 loop.run_until_complete(server.start())
                 loop.run_forever()
 

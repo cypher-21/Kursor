@@ -7,6 +7,8 @@ interface SettingsModalProps {
   onClose: () => void;
   sensitivity: number;
   setSensitivity: (val: number) => void;
+  scrollSensitivity: number;
+  setScrollSensitivity: (val: number) => void;
   invertScroll: boolean;
   setInvertScroll: (val: boolean) => void;
   hapticsEnabled: boolean;
@@ -18,6 +20,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   onClose,
   sensitivity,
   setSensitivity,
+  scrollSensitivity,
+  setScrollSensitivity,
   invertScroll,
   setInvertScroll,
   hapticsEnabled,
@@ -41,7 +45,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
         </div>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
-          {/* Sensitivity */}
+          {/* Cursor Sensitivity */}
           <div>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
               <label style={{ fontSize: '0.82rem', fontWeight: 500, color: 'var(--text-primary)' }}>
@@ -58,6 +62,27 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               step="0.1"
               value={sensitivity}
               onChange={(e) => setSensitivity(parseFloat(e.target.value))}
+              className="custom-range"
+            />
+          </div>
+
+          {/* Scroll Sensitivity */}
+          <div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+              <label style={{ fontSize: '0.82rem', fontWeight: 500, color: 'var(--text-primary)' }}>
+                Scroll Sensitivity
+              </label>
+              <span style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', fontFamily: 'var(--font-mono)' }}>
+                {scrollSensitivity.toFixed(1)}x
+              </span>
+            </div>
+            <input
+              type="range"
+              min="0.2"
+              max="3.0"
+              step="0.1"
+              value={scrollSensitivity}
+              onChange={(e) => setScrollSensitivity(parseFloat(e.target.value))}
               className="custom-range"
             />
           </div>

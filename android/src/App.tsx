@@ -21,6 +21,11 @@ export function App() {
     return saved ? parseFloat(saved) : 1.2;
   });
 
+  const [scrollSensitivity, setScrollSensitivity] = useState<number>(() => {
+    const saved = localStorage.getItem('kursor_scroll_sensitivity');
+    return saved ? parseFloat(saved) : 1.0;
+  });
+
   const [invertScroll, setInvertScroll] = useState<boolean>(() => {
     const saved = localStorage.getItem('kursor_invert_scroll') || localStorage.getItem('mousely_invert_scroll');
     return saved === 'true';
@@ -34,6 +39,10 @@ export function App() {
   useEffect(() => {
     localStorage.setItem('kursor_sensitivity', sensitivity.toString());
   }, [sensitivity]);
+
+  useEffect(() => {
+    localStorage.setItem('kursor_scroll_sensitivity', scrollSensitivity.toString());
+  }, [scrollSensitivity]);
 
   useEffect(() => {
     localStorage.setItem('kursor_invert_scroll', invertScroll ? 'true' : 'false');
@@ -163,6 +172,7 @@ export function App() {
             onScroll={socket.sendScroll}
             onGesture={socket.sendGesture}
             sensitivity={sensitivity}
+            scrollSensitivity={scrollSensitivity}
             invertScroll={invertScroll}
           />
         )}
@@ -207,6 +217,8 @@ export function App() {
         onClose={() => setShowSettingsModal(false)}
         sensitivity={sensitivity}
         setSensitivity={setSensitivity}
+        scrollSensitivity={scrollSensitivity}
+        setScrollSensitivity={setScrollSensitivity}
         invertScroll={invertScroll}
         setInvertScroll={setInvertScroll}
         hapticsEnabled={hapticsEnabled}

@@ -33,6 +33,8 @@ class X11Backend(InputBackend):
             raise RuntimeError("pynput is not installed. Install via: pip install pynput")
         self.mouse = MouseController() if HAVE_PYNPUT else None
         self.keyboard = KeyboardController() if HAVE_PYNPUT else None
+        self.remainder_scroll_y = 0.0
+        self.remainder_scroll_x = 0.0
         platform_name = "Windows Win32" if self.is_windows else "X11 / pynput"
         print(f"[InputBackend] Initialized {platform_name} input driver")
 
@@ -69,12 +71,28 @@ class X11Backend(InputBackend):
 
     def scroll(self, dx: float, dy: float) -> None:
         if self.is_windows:
-            if dy != 0:
-                ctypes.windll.user32.mouse_event(MOUSEEVENTF_WHEEL, 0, 0, int(dy * 120), 0)
-            if dx != 0:
-                ctypes.windll.user32.mouse_event(MOUSEEVENTF_HWHEEL, 0, 0, int(dx * 120), 0)
+            # Accumulate fractional wheel units (120 units = 1 notch)
+            self.remainder_scroll_y += dy * 120.0
+            self.remainder_scroll_x += dx * 120.0
+
+            steps_y = int(self.remainder_scroll_y)
+            steps_x = int(self.remainder_scroll_x)
+
+            if steps_y != 0:
+                self.remainder_scroll_y -= steps_y
+                ctypes.windll.user32.mouse_event(MOUSEEVENTF_WHEEL, 0, 0, steps_y, 0)
+            if steps_x != 0:
+                self.remainder_scroll_x -= steps_x
+                ctypes.windll.user32.mouse_event(MOUSEEVENTF_HWHEEL, 0, 0, steps_x, 0)
         elif self.mouse:
-            self.mouse.scroll(int(dx), int(dy))
+            self.remainder_scroll_y += dy
+            self.remainder_scroll_x += dx
+            steps_y = int(self.remainder_scroll_y)
+            steps_x = int(self.remainder_scroll_x)
+            if steps_y != 0 or steps_x != 0:
+                self.remainder_scroll_y -= steps_y
+                self.remainder_scroll_x -= steps_x
+                self.mouse.scroll(steps_x, steps_y)
 
     def press_key(self, key_name: str) -> None:
         norm = key_name.lower().strip()

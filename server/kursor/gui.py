@@ -22,10 +22,11 @@ class KursorGUI:
     Displays QR Code for instant phone camera pairing and allows tuning controls.
     """
 
-    def __init__(self, port: int = 8765):
+    def __init__(self, port: int = 8765, server = None):
         if not HAVE_TK:
             raise RuntimeError("Tkinter is not available. Please run with --cli for headless mode.")
         self.port = port
+        self.server = server
         self.config = load_config()
         self.root = None
         self.qr_photo = None
@@ -33,7 +34,7 @@ class KursorGUI:
     def start(self):
         self.root = tk.Tk()
         self.root.title("Kursor Desktop")
-        self.root.geometry("460x620")
+        self.root.geometry("460x650")
         self.root.resizable(False, False)
 
         # Style configuration - Dark Theme matching Mousely aesthetic
@@ -113,7 +114,7 @@ class KursorGUI:
             bg=card_bg
         ).pack(anchor="w", padx=16, pady=(12, 8))
 
-        # Sensitivity Slider
+        # Pointer Speed Slider
         sens_frame = tk.Frame(settings_card, bg=card_bg)
         sens_frame.pack(fill="x", padx=16, pady=4)
         tk.Label(sens_frame, text="Pointer Speed:", font=("Helvetica", 10), fg=text_secondary, bg=card_bg).pack(side="left")
@@ -134,6 +135,27 @@ class KursorGUI:
         )
         sens_scale.pack(side="right", fill="x", expand=True, padx=(12, 0))
 
+        # Scroll Speed Slider
+        scroll_frame = tk.Frame(settings_card, bg=card_bg)
+        scroll_frame.pack(fill="x", padx=16, pady=(4, 12))
+        tk.Label(scroll_frame, text="Scroll Speed:", font=("Helvetica", 10), fg=text_secondary, bg=card_bg).pack(side="left")
+
+        self.scroll_val = tk.DoubleVar(value=self.config.get("scroll_sensitivity", 1.0))
+        scroll_scale = tk.Scale(
+            scroll_frame,
+            from_=0.2,
+            to=3.0,
+            resolution=0.1,
+            orient="horizontal",
+            variable=self.scroll_val,
+            bg=card_bg,
+            fg=text_primary,
+            highlightthickness=0,
+            troughcolor="#2d2d3a",
+            command=self._on_scroll_sens_change
+        )
+        scroll_scale.pack(side="right", fill="x", expand=True, padx=(12, 0))
+
         # Status Bar
         status_frame = tk.Frame(self.root, bg=bg_color)
         status_frame.pack(side="bottom", fill="x", padx=24, pady=16)
@@ -153,8 +175,18 @@ class KursorGUI:
         self.root.mainloop()
 
     def _on_sens_change(self, val):
-        self.config["mouse_sensitivity"] = float(val)
+        val_f = float(val)
+        self.config["mouse_sensitivity"] = val_f
         save_config(self.config)
+        if self.server:
+            self.server.set_mouse_sensitivity(val_f)
+
+    def _on_scroll_sens_change(self, val):
+        val_f = float(val)
+        self.config["scroll_sensitivity"] = val_f
+        save_config(self.config)
+        if self.server:
+            self.server.set_scroll_sensitivity(val_f)
 
 # Backward compatibility
 MouselyGUI = KursorGUI

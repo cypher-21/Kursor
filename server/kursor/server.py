@@ -21,6 +21,12 @@ class KursorServer:
         self.port = port or self.config.get("port", 8765)
         self.app = web.Application()
         self.connected_sockets: Set[web.WebSocketResponse] = set()
+
+        # Dynamic sensitivity controls
+        self.mouse_sensitivity = float(self.config.get("mouse_sensitivity", 1.2))
+        self.mouse_acceleration = float(self.config.get("mouse_acceleration", 1.15))
+        self.scroll_sensitivity = float(self.config.get("scroll_sensitivity", 1.0))
+        self.invert_scroll = bool(self.config.get("invert_scroll", False))
         
         # Core engines
         self.input_engine = create_input_backend(self.config.get("preferred_backend", "auto"))
@@ -53,6 +59,14 @@ class KursorServer:
                 self.static_dir.mkdir(parents=True, exist_ok=True)
 
         self._setup_routes()
+
+    def set_mouse_sensitivity(self, val: float):
+        self.mouse_sensitivity = float(val)
+        self.config["mouse_sensitivity"] = float(val)
+
+    def set_scroll_sensitivity(self, val: float):
+        self.scroll_sensitivity = float(val)
+        self.config["scroll_sensitivity"] = float(val)
 
     def _setup_routes(self):
         self.app.router.add_get("/ws", self.handle_websocket)
@@ -106,15 +120,11 @@ class KursorServer:
             "server_name": self.server_name,
             "status": self.sys_controls.get_system_status(),
             "settings": {
-                "sensitivity": self.config.get("mouse_sensitivity", 1.2),
-                "invert_scroll": self.config.get("invert_scroll", False)
+                "sensitivity": self.mouse_sensitivity,
+                "scroll_sensitivity": self.scroll_sensitivity,
+                "invert_scroll": self.invert_scroll
             }
         })
-
-        sens = self.config.get("mouse_sensitivity", 1.2)
-        accel = self.config.get("mouse_acceleration", 1.15)
-        scroll_sens = self.config.get("scroll_sensitivity", 1.0)
-        invert_scroll = -1.0 if self.config.get("invert_scroll", False) else 1.0
 
         try:
             async for msg in ws:
@@ -126,6 +136,8 @@ class KursorServer:
                         if msg_type == "move":
                             raw_dx = float(data.get("dx", 0))
                             raw_dy = float(data.get("dy", 0))
+                            sens = self.mouse_sensitivity
+                            accel = self.mouse_acceleration
                             # Apply acceleration curve: small movements precise, fast movements swift
                             dist = (raw_dx**2 + raw_dy**2)**0.5
                             factor = (1.0 + (dist * 0.05 * (accel - 1.0))) * sens
@@ -137,8 +149,9 @@ class KursorServer:
                             self.input_engine.click(button, state)
 
                         elif msg_type == "scroll":
+                            scroll_sens = self.scroll_sensitivity
                             sdx = float(data.get("dx", 0)) * scroll_sens
-                            sdy = float(data.get("dy", 0)) * scroll_sens * invert_scroll
+                            sdy = float(data.get("dy", 0)) * scroll_sens
                             self.input_engine.scroll(sdx, sdy)
 
                         elif msg_type == "gesture":

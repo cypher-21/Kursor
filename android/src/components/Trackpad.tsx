@@ -8,6 +8,7 @@ interface TrackpadProps {
   onScroll: (dx: number, dy: number) => void;
   onGesture: (action: string) => void;
   sensitivity?: number;
+  scrollSensitivity?: number;
   invertScroll?: boolean;
 }
 
@@ -23,6 +24,7 @@ export const Trackpad: React.FC<TrackpadProps> = ({
   onScroll,
   onGesture,
   sensitivity = 1.0,
+  scrollSensitivity = 1.0,
   invertScroll = false,
 }) => {
   const haptics = useHaptics();
@@ -43,6 +45,7 @@ export const Trackpad: React.FC<TrackpadProps> = ({
   const prevCentroidRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
   const totalTravelRef = useRef<number>(0);
   const swipeHandledRef = useRef<boolean>(false);
+  const ribbonTravelRef = useRef<number>(0);
 
   // Compute centroid of touches
   const getCentroid = (touches: React.TouchList) => {
@@ -91,8 +94,10 @@ export const Trackpad: React.FC<TrackpadProps> = ({
     const count = e.touches.length;
     const centroid = getCentroid(e.touches);
 
-    const dx = (centroid.x - prevCentroidRef.current.x) * sensitivity;
-    const dy = (centroid.y - prevCentroidRef.current.y) * sensitivity;
+    const rawDx = centroid.x - prevCentroidRef.current.x;
+    const rawDy = centroid.y - prevCentroidRef.current.y;
+    const dx = rawDx * sensitivity;
+    const dy = rawDy * sensitivity;
 
     totalTravelRef.current += Math.hypot(dx, dy);
     prevCentroidRef.current = centroid;
@@ -101,9 +106,10 @@ export const Trackpad: React.FC<TrackpadProps> = ({
       // 1 Finger: Smooth cursor motion
       onMove(dx, dy);
     } else if (count === 2) {
-      // 2 Fingers: Smooth vertical & horizontal scrolling
-      const scrollMul = invertScroll ? 1 : -1;
-      onScroll(dx * 0.8, dy * scrollMul * 0.8);
+      // 2 Fingers: Smooth vertical & horizontal scrolling calibrated to real wheel clicks
+      const dir = invertScroll ? 1 : -1;
+      const baseFactor = 0.04 * scrollSensitivity;
+      onScroll(rawDx * dir * baseFactor, rawDy * dir * baseFactor);
     } else if (count === 3 && !swipeHandledRef.current) {
       // 3 Fingers: Desktop Gestures
       const totalDx = centroid.x - touchStartPosRef.current.x;
@@ -168,13 +174,25 @@ export const Trackpad: React.FC<TrackpadProps> = ({
         prevCentroidRef.current = { x: touch.clientX, y: touch.clientY };
         return;
       }
-      const dy = touch.clientY - prevCentroidRef.current.y;
+      const rawDy = touch.clientY - prevCentroidRef.current.y;
       prevCentroidRef.current = { x: touch.clientX, y: touch.clientY };
-      const mul = invertScroll ? -1.5 : 1.5;
-      onScroll(0, dy * mul);
-      haptics.tick();
+
+      // Traditional: sliding finger down scrolls page DOWN (negative wheel delta)
+      // Natural (invertScroll): sliding finger down moves content DOWN (positive wheel delta)
+      const dir = invertScroll ? 1 : -1;
+      const baseFactor = 0.04 * scrollSensitivity;
+      const sdy = rawDy * dir * baseFactor;
+
+      onScroll(0, sdy);
+
+      // Tactile haptic feedback per notch traveled (~20px)
+      ribbonTravelRef.current += Math.abs(rawDy);
+      if (ribbonTravelRef.current >= 20) {
+        haptics.tick();
+        ribbonTravelRef.current = 0;
+      }
     },
-    [onScroll, invertScroll, haptics]
+    [onScroll, invertScroll, scrollSensitivity, haptics]
   );
 
   return (
