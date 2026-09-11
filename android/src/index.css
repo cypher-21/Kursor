@@ -93,26 +93,27 @@ html, body {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 10px 14px;
-  height: 52px;
+  padding: 8px 12px;
+  height: 50px;
   background: rgba(8, 8, 10, 0.95);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
   border-bottom: 1.5px solid var(--border-subtle);
   z-index: 50;
   flex-shrink: 0;
+  gap: 8px;
 }
 
 .brand-section {
   display: flex;
   align-items: center;
-  gap: 8px;
-  min-width: 0;
+  gap: 7px;
+  flex-shrink: 0; /* Never shrink or allow header actions to overlap */
 }
 
 .brand-logo {
-  width: 26px;
-  height: 26px;
+  width: 25px;
+  height: 25px;
   border-radius: var(--radius-sm);
   background: #ffffff;
   color: #000000;
@@ -126,7 +127,7 @@ html, body {
 
 .brand-name {
   font-weight: 700;
-  font-size: 1.05rem;
+  font-size: 1rem;
   letter-spacing: -0.3px;
   color: #ffffff;
   white-space: nowrap;
@@ -135,8 +136,9 @@ html, body {
 .header-actions {
   display: flex;
   align-items: center;
-  gap: 6px;
-  flex-shrink: 0;
+  gap: 5px;
+  flex-shrink: 1;
+  min-width: 0;
 }
 
 .status-badge {
@@ -315,61 +317,6 @@ html, body {
   background: #000000 !important;
 }
 
-.floating-action-bar {
-  position: absolute;
-  top: 14px;
-  right: 14px;
-  z-index: 1000;
-  display: flex;
-  gap: 8px;
-  background: rgba(14, 14, 18, 0.85);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  padding: 5px;
-  border-radius: var(--radius-full);
-  border: 1.5px solid var(--border-medium);
-}
-
-/* Trackpad Keyboard */
-.trackpad-hidden-input {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 1px;
-  height: 1px;
-  opacity: 0;
-  pointer-events: none;
-  font-size: 16px;
-  z-index: -1;
-  border: none;
-  outline: none;
-}
-
-.trackpad-live-keyboard-bar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 8px 12px;
-  background: rgba(14, 14, 19, 0.95);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border: 1.5px solid var(--border-medium);
-  border-radius: var(--radius-md);
-  margin-bottom: 6px;
-  gap: 8px;
-  flex-shrink: 0;
-  z-index: 20;
-}
-
-.trackpad-live-text {
-  font-family: var(--font-mono);
-  font-size: 0.8rem;
-  color: #ffffff;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  flex: 1;
-}
 
 /* Presenter View (Portrait Default) */
 .presenter-container {
@@ -933,3 +880,57 @@ html, body {
     gap: 8px;
   }
 }
+
+/* Compact header optimization for small mobile devices */
+@media (max-width: 480px) {
+  .app-header {
+    padding: 6px 10px;
+    height: 48px;
+    gap: 6px;
+  }
+
+  .brand-section {
+    gap: 6px;
+  }
+
+  .brand-logo {
+    width: 23px;
+    height: 23px;
+  }
+
+  .brand-name {
+    font-size: 0.95rem;
+  }
+
+  .header-actions {
+    gap: 4px;
+  }
+
+  .status-badge {
+    padding: 3px 6px;
+    font-size: 0.68rem;
+    gap: 3px;
+  }
+
+  .icon-button {
+    width: 30px;
+    height: 30px;
+  }
+}
+
+@media (max-width: 360px) {
+  .app-header {
+    padding: 4px 8px;
+    gap: 4px;
+  }
+
+  .brand-name {
+    font-size: 0.88rem;
+  }
+
+  .status-badge {
+    padding: 2px 5px;
+    font-size: 0.64rem;
+  }
+}
+

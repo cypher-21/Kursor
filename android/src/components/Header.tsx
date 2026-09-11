@@ -23,9 +23,6 @@ export const Header: React.FC<HeaderProps> = ({
   isFullscreen,
   onToggleFullscreen,
 }) => {
-  // Truncate server name for compact display
-  const displayName = serverName.length > 8 ? serverName.slice(0, 7) + '..' : serverName;
-
   return (
     <header className="app-header">
       <div className="brand-section">
@@ -47,13 +44,13 @@ export const Header: React.FC<HeaderProps> = ({
           title={connected ? `Connected to ${serverName}` : 'Disconnected. Tap to connect'}
         >
           <span className="pulse-dot" />
-          <span>{connected ? displayName : 'Offline'}</span>
+          <span>{connected ? 'Online' : 'Offline'}</span>
           {connected ? <Wifi size={12} /> : <WifiOff size={12} />}
         </button>
 
         {/* Latency badge */}
         {connected && latency !== null && (
-          <div className="status-badge">
+          <div className="status-badge" title={`Latency: ${latency}ms`}>
             <Zap size={11} />
             <span>{latency}ms</span>
           </div>
@@ -61,7 +58,7 @@ export const Header: React.FC<HeaderProps> = ({
 
         {/* Host Laptop Battery */}
         {status.battery !== null && (
-          <div className="status-badge">
+          <div className="status-badge" title={`Host Battery: ${status.battery}%`}>
             {status.charging ? <BatteryCharging size={13} color="#10b981" /> : <Battery size={13} />}
             <span>{status.battery}%</span>
           </div>

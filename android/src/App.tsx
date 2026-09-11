@@ -164,11 +164,6 @@ export function App() {
             onGesture={socket.sendGesture}
             sensitivity={sensitivity}
             invertScroll={invertScroll}
-            isFullscreen={isBrowserFullscreen}
-            onToggleFullscreen={toggleBrowserFullscreen}
-            onLiveInput={socket.sendLiveInput}
-            onLiveBackspace={socket.sendLiveBackspace}
-            onLiveEnter={socket.sendLiveEnter}
           />
         )}
 
