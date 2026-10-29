@@ -26,3 +26,6 @@ local.properties
 .DS_Store
 Thumbs.db
 .vscode/
+
+# local action log (not part of the app)
+command.txt
