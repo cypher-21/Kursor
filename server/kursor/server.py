@@ -15,11 +15,39 @@ from .system_controls import SystemControls
 from .discovery import DiscoveryService, get_local_ips
 from . import __version__
 
+
+# --------------------------------------------------------------------------
+# HTTP caching middleware - ROOT FIX for the "stale PWA UI" trap.
+#
+# The old behavior served index.html / sw.js with no Cache-Control at all, so
+# browsers were free to heuristic-cache the app shell. Combined with an older
+# service worker this left phones showing an outdated UI that never
+# revalidated. Policy:
+#   * /sw.js            -> no-cache  (the SW script must ALWAYS be revalidated)
+#   * app shell (.html, /, manifest.json, icons) -> no-cache (revalidate, small)
+#   * /assets/*         -> immutable (hashed build output, cache forever)
+# --------------------------------------------------------------------------
+@web.middleware
+async def cache_headers_middleware(request: web.Request, handler):
+    p = request.path
+    if p == "/ws" or p.startswith("/api/"):
+        return await handler(request)
+    resp = await handler(request)
+    if p == "/sw.js":
+        resp.headers["Cache-Control"] = "no-cache"
+    elif p.startswith("/assets/"):
+        resp.headers["Cache-Control"] = "public, max-age=31536000, immutable"
+    else:
+        # app shell pages + manifest + icons: revalidate every time (cheap 304s)
+        resp.headers["Cache-Control"] = "no-cache"
+    return resp
+
+
 class KursorServer:
     def __init__(self, port: int = 8765, static_dir: str = None):
         self.config = load_config()
         self.port = port or self.config.get("port", 8765)
-        self.app = web.Application()
+        self.app = web.Application(middlewares=[cache_headers_middleware])
         self.connected_sockets: Set[web.WebSocketResponse] = set()
 
         # Dynamic sensitivity controls
@@ -228,10 +256,6 @@ class KursorServer:
                                 self.input_engine.press_key("f5")
                             elif action == "exit":
                                 self.input_engine.press_key("escape")
-                            elif action == "black":
-                                self.input_engine.press_key("b")
-                            elif action == "white":
-                                self.input_engine.press_key("w")
 
                         elif msg_type == "media":
                             action = data.get("action")

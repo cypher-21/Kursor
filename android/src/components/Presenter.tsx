@@ -6,15 +6,13 @@ import {
   Pause,
   RotateCcw,
   Maximize2,
-  Moon,
-  Sun,
   X,
   MousePointer2,
 } from 'lucide-react';
 import { useHaptics } from '../hooks/useHaptics';
 
 interface PresenterProps {
-  onAction: (action: 'next' | 'prev' | 'start' | 'exit' | 'black' | 'white') => void;
+  onAction: (action: 'next' | 'prev' | 'start' | 'exit') => void;
   onMove: (dx: number, dy: number) => void;
   onClick?: (button?: 'left' | 'right' | 'middle', state?: 'click' | 'down' | 'up') => void;
 }
@@ -209,18 +207,14 @@ export const Presenter: React.FC<PresenterProps> = ({ onAction, onMove, onClick 
         onTouchEnd={handlePointerTouchEnd}
         onTouchCancel={handlePointerTouchEnd}
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <MousePointer2 size={20} color="var(--text-muted)" />
-          <span className="presenter-pad-label" style={{ fontSize: '0.96rem' }}>
-            Pointer Pad
-          </span>
-        </div>
+        <MousePointer2 size={26} color="var(--text-muted)" />
+        <span className="presenter-pad-label">Pointer Pad</span>
         <span className="presenter-pad-hint">
-          Swipe to move the cursor • Quick tap = click • Tap, then tap-and-hold to drag (select text)
+          Swipe to move • Tap to click • Tap, then hold &amp; sweep to drag
         </span>
       </div>
 
-      {/* PowerPoint-style Quick Keys */}
+      {/* Slideshow Start / Exit */}
       <div className="presentation-quick-tools">
         <button
           className="tool-btn"
@@ -231,31 +225,7 @@ export const Presenter: React.FC<PresenterProps> = ({ onAction, onMove, onClick 
           title="Start Slideshow (F5)"
         >
           <Maximize2 size={16} />
-          <span>F5 Start</span>
-        </button>
-
-        <button
-          className="tool-btn"
-          onClick={() => {
-            haptics.click();
-            onAction('black');
-          }}
-          title="Blank Screen (B)"
-        >
-          <Moon size={16} />
-          <span>Black (B)</span>
-        </button>
-
-        <button
-          className="tool-btn"
-          onClick={() => {
-            haptics.click();
-            onAction('white');
-          }}
-          title="White Screen (W)"
-        >
-          <Sun size={16} />
-          <span>White (W)</span>
+          <span>Start (F5)</span>
         </button>
 
         <button
@@ -264,7 +234,7 @@ export const Presenter: React.FC<PresenterProps> = ({ onAction, onMove, onClick 
             haptics.click();
             onAction('exit');
           }}
-          title="Exit Presentation (Esc)"
+          title="Exit / stop the slideshow (Esc)"
         >
           <X size={16} />
           <span>Exit (Esc)</span>

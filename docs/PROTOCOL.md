@@ -156,8 +156,7 @@ Actions:
 ```json
 { "type": "presenter", "action": "start" }
 ```
-- `action`: `"start"` (F5), `"exit"` (Esc), `"black"` (B), `"white"` (W),
-  `"next"` (PageDown), `"prev"` (PageUp)
+- `action`: `"start"` (F5), `"exit"` (Esc), `"next"` (PageDown), `"prev"` (PageUp)
 - NOTE: the legacy `"laser"` message (on-screen laser dot / spotlight overlay)
   was removed; the server now simply ignores it, unknown message types follow
   the standard unknown-type warning path.

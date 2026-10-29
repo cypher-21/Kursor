@@ -32,7 +32,7 @@ export interface UseSocketReturn {
   sendClick: (button?: 'left' | 'right' | 'middle', state?: 'click' | 'down' | 'up') => void;
   sendScroll: (dx: number, dy: number) => void;
   sendGesture: (action: string) => void;
-  sendPresenter: (action: 'next' | 'prev' | 'start' | 'exit' | 'black' | 'white') => void;
+  sendPresenter: (action: 'next' | 'prev' | 'start' | 'exit') => void;
   sendMedia: (action: 'vol_up' | 'vol_down' | 'mute' | 'set_vol' | 'play_pause' | 'next' | 'prev', value?: number) => void;
   sendText: (content: string) => void;
   sendKey: (key: string) => void;
@@ -285,7 +285,7 @@ export function useSocket(): UseSocketReturn {
     sendRaw({ type: 'gesture', action });
   }, [sendRaw]);
 
-  const sendPresenter = useCallback((action: 'next' | 'prev' | 'start' | 'exit' | 'black' | 'white') => {
+  const sendPresenter = useCallback((action: 'next' | 'prev' | 'start' | 'exit') => {
     sendRaw({ type: 'presenter', action });
   }, [sendRaw]);
 

@@ -26,7 +26,7 @@ An open-source desktop control system engineered for **Windows** (10/11) and **L
   - Integrated **Mouse Touchpad**: Large dedicated touch area for cursor movement, clicks and text selection.
   - **Tap, then tap-and-hold & sweep = click-and-drag** (select text, move windows — on the trackpad and presenter pad alike).
   - **Stopwatch Timer**: Clean countdown/presentation timer with start, pause, and reset.
-  - **Quick Presentation Keys**: Start Slideshow (F5), Exit (Esc), Blank Screen (Black/White).
+  - **Quick Presentation Keys**: Start Slideshow (F5) and Exit (Esc).
   - **Pointer Pad**: The presenter pad always moves the mouse cursor (click / tap-drag included), so you can point at on-screen content mid-presentation.
 
 - **System Controls & Live Typing**:
