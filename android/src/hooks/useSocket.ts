@@ -43,6 +43,7 @@ export interface UseSocketReturn {
   requestClipboard: () => void;
   serverClipboard: string | null;
   clipboardLoading: boolean;
+  powerResult: { action: 'lock' | 'sleep'; ok: boolean } | null;
   toggleDnd: () => void;
 }
 
@@ -63,6 +64,8 @@ export function useSocket(): UseSocketReturn {
   // Text fetched from the PC clipboard (null = requested but empty/unreadable)
   const [serverClipboard, setServerClipboard] = useState<string | null>(null);
   const [clipboardLoading, setClipboardLoading] = useState(false);
+  // Outcome of the last lock/sleep command, as acknowledged by the PC
+  const [powerResult, setPowerResult] = useState<{ action: 'lock' | 'sleep'; ok: boolean } | null>(null);
 
   // Determine initial host & port
   const getInitialHost = () => {
@@ -227,6 +230,9 @@ export function useSocket(): UseSocketReturn {
             // Reply to a requestClipboard() call (may be null = empty/unreadable)
             setServerClipboard(data.text ?? null);
             setClipboardLoading(false);
+          } else if (data.type === 'power_result') {
+            // PC acknowledges lock/sleep; ok=false means the PC refused it
+            setPowerResult({ action: data.action, ok: !!data.ok });
           }
         } catch (err) {
           console.error('[Kursor] Message parse error:', err);
@@ -365,6 +371,7 @@ export function useSocket(): UseSocketReturn {
     requestClipboard,
     serverClipboard,
     clipboardLoading,
+    powerResult,
     toggleDnd
   };
 }

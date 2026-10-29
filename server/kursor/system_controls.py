@@ -1,3 +1,5 @@
+import getpass
+import os
 import sys
 import ctypes
 import shutil
@@ -124,35 +126,154 @@ class SystemControls:
     # Power actions
     # ------------------------------------------------------------------ #
 
-    def lock_screen(self) -> None:
+    @staticmethod
+    def _current_username() -> str:
+        try:
+            return getpass.getuser()
+        except Exception:
+            return os.environ.get("USER", "")
+
+    def _linux_graphical_session_ids(self) -> list:
+        """IDs of this user's active graphical logind sessions.
+
+        A bare `loginctl lock-session` cannot be trusted: when the server
+        process has no XDG_SESSION_ID (e.g. started via nohup), logind
+        cannot attribute the call to the desktop session and the command
+        exits 0 WITHOUT locking (silent no-op, proven by on-machine test).
+        So we resolve the desktop session explicitly.
+        """
+        sessions = []
+        user = self._current_username()
+        try:
+            res = subprocess.run(
+                ["loginctl", "list-sessions", "--no-legend"],
+                capture_output=True, text=True, timeout=5,
+            )
+            if res.returncode != 0:
+                print(f"[SystemControls] loginctl list-sessions failed: {res.stderr.strip()}")
+                return sessions
+            for line in res.stdout.splitlines():
+                parts = line.split()
+                if not parts:
+                    continue
+                sid = parts[0]
+                probe = subprocess.run(
+                    ["loginctl", "show-session", sid,
+                     "-p", "Name", "-p", "Active", "-p", "Type", "-p", "Class"],
+                    capture_output=True, text=True, timeout=5,
+                )
+                info = {}
+                for kv in probe.stdout.splitlines():
+                    if "=" in kv:
+                        k, _, v = kv.partition("=")
+                        info[k] = v
+                if (info.get("Name") == user
+                        and info.get("Active") == "yes"
+                        and info.get("Type") in ("wayland", "x11")
+                        and info.get("Class") == "user"):
+                    sessions.append(sid)
+        except Exception as exc:
+            print(f"[SystemControls] graphical session lookup error: {exc}")
+        return sessions
+
+    def _gdbus_session(self, dest: str, path: str, method_sig: str) -> bool:
+        """Method call on the user's session bus; returns True on success."""
+        try:
+            res = subprocess.run(
+                ["gdbus", "call", "--session", "--dest", dest,
+                 "--object-path", path, "--method", method_sig],
+                capture_output=True, text=True, timeout=6,
+            )
+            if res.returncode == 0:
+                return True
+            print(f"[SystemControls] {dest} failed: {(res.stderr or res.stdout).strip()}")
+        except Exception as exc:
+            print(f"[SystemControls] {dest} error: {exc}")
+        return False
+
+    def lock_screen(self) -> bool:
+        """Lock the desktop. Returns True only when an action was accepted."""
         if self.is_windows:
             try:
-                ctypes.windll.user32.LockWorkStation()
+                ok = bool(ctypes.windll.user32.LockWorkStation())
+                if not ok:
+                    print("[SystemControls] LockWorkStation returned FALSE")
+                return ok
             except Exception as exc:
-                print(f"[SystemControls] LockWorkStation failed: {exc}")
-        elif shutil.which("loginctl"):
-            # Works on GNOME/KDE Wayland & X11 (logind session lock)
-            subprocess.run(["loginctl", "lock-session"], capture_output=True, timeout=5)
-        else:
-            # GNOME fallback via D-Bus
-            subprocess.run(
-                ["gdbus", "call", "--session",
-                 "--dest", "org.gnome.ScreenSaver",
-                 "--object-path", "/org/gnome/ScreenSaver",
-                 "--method", "org.gnome.ScreenSaver.Lock"],
-                capture_output=True, timeout=5,
-            )
+                print(f"[SystemControls] LockWorkStation error: {exc}")
+                return False
 
-    def sleep(self) -> None:
-        """Put the machine to sleep (S3 suspend)."""
+        # logind, with an EXPLICIT session id (a memberless call is a
+        # documented silent no-op for non-session processes)
+        for sid in self._linux_graphical_session_ids():
+            try:
+                res = subprocess.run(
+                    ["loginctl", "lock-session", sid],
+                    capture_output=True, text=True, timeout=6,
+                )
+                if res.returncode == 0:
+                    return True
+                print(f"[SystemControls] lock-session {sid} failed: {(res.stderr or res.stdout).strip()}")
+            except Exception as exc:
+                print(f"[SystemControls] lock-session {sid} error: {exc}")
+
+        # Session-bus screen-lock protocol name (GNOME & KDE implement it)
+        return self._gdbus_session(
+            "org.freedesktop.ScreenSaver",
+            "/org/freedesktop/ScreenSaver",
+            "org.freedesktop.ScreenSaver.Lock",
+        )
+
+    def sleep(self) -> bool:
+        """Suspend-to-RAM. Returns True only when the command was accepted."""
         if self.is_windows:
-            subprocess.run(
-                ["rundll32.exe", "powrprof.dll,SetSuspendState", "0", "1", "0"],
-                capture_output=True, timeout=5,
+            try:
+                # rundll32 cannot report failure, but this is the only API
+                # callable without a service context; screen state on wake
+                # confirms reality.
+                subprocess.run(
+                    ["rundll32.exe", "powrprof.dll,SetSuspendState", "0", "1", "0"],
+                    capture_output=True, timeout=10,
+                )
+                return True
+            except Exception as exc:
+                print(f"[SystemControls] SetSuspendState error: {exc}")
+                return False
+
+        try:
+            res = subprocess.run(
+                ["systemctl", "suspend"],
+                capture_output=True, text=True, timeout=15,
             )
-        else:
-            # polkit typically allows suspend for the active desktop session
-            subprocess.run(["systemctl", "suspend"], capture_output=True, timeout=5)
+            if res.returncode == 0:
+                return True
+            print(f"[SystemControls] systemctl suspend failed (rc={res.returncode}): "
+                  f"{(res.stderr or res.stdout).strip()}")
+        except Exception as exc:
+            print(f"[SystemControls] systemctl suspend error: {exc}")
+
+        # Fallback: talk to logind over the system bus directly (same polkit
+        # path; interactive request so a desktop polkit agent can approve it)
+        return self._gdbus_system(
+            "org.freedesktop.login1",
+            "/org/freedesktop/login1",
+            "org.freedesktop.login1.Manager.Suspend",
+            "true",
+        )
+
+    def _gdbus_system(self, dest: str, path: str, method_sig: str, arg: str) -> bool:
+        try:
+            res = subprocess.run(
+                ["gdbus", "call", "--system", "--dest", dest,
+                 "--object-path", path, "--method", method_sig, arg],
+                capture_output=True, text=True, timeout=15,
+            )
+            if res.returncode == 0:
+                return True
+            print(f"[SystemControls] {method_sig} failed: {(res.stderr or res.stdout).strip()}")
+        except Exception as exc:
+            print(f"[SystemControls] {method_sig} error: {exc}")
+        return False
 
     # ------------------------------------------------------------------ #
     # Clipboard

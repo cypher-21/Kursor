@@ -114,7 +114,7 @@ journalctl --user -u kursor -f
 | Presentation keys (F5, Esc, PageDown) | Supported | Supported |
 | Desktop gestures (Overview, Show Desktop) | Supported (Super, Super+D) | Supported |
 | Volume & Media keys | Supported (`pactl` & `playerctl`) | Supported (`pactl` & `playerctl`) |
-| Lock screen control | Supported (`loginctl lock-session`) | Supported (`LockWorkStation`) |
-| Sleep / suspend | Supported (`systemctl suspend`) | Supported (`SetSuspendState`) |
+| Lock screen control | Supported (`loginctl lock-session <active-session-id>`, resolved explicitly; `org.freedesktop.ScreenSaver` fallback) | Supported (`LockWorkStation`) |
+| Sleep / suspend | Supported (logind `Suspend`, session-state checks + acknowledgement) | Supported (`SetSuspendState`) |
 | PC clipboard viewer | Supported (`wl-paste` / `xclip` / `xsel`) | Supported (PowerShell) |
 | Screenshot & zoom keys | Win+Shift+S, PrtSc, Ctrl +/-/0 | Win+Shift+S, PrtSc, Ctrl +/-/0 |

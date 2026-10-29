@@ -658,6 +658,25 @@ html, body {
   background: rgba(239, 68, 68, 0.08);
 }
 
+.power-result {
+  font-size: 0.72rem;
+  text-align: center;
+  border-radius: var(--radius-sm);
+  padding: 6px 10px;
+}
+
+.power-result.ok {
+  color: var(--accent-green);
+  background: rgba(16, 185, 129, 0.10);
+  border: 1px solid rgba(16, 185, 129, 0.35);
+}
+
+.power-result.fail {
+  color: var(--accent-red);
+  background: rgba(239, 68, 68, 0.10);
+  border: 1px solid rgba(239, 68, 68, 0.35);
+}
+
 .clipboard-view {
   background: #000000;
   border: 1.5px solid var(--border-subtle);

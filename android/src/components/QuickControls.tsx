@@ -44,6 +44,7 @@ interface QuickControlsProps {
   onLiveBackspace: () => void;
   onLiveEnter: () => void;
   onSendPower: (action: 'lock' | 'sleep') => void;
+  powerResult: { action: 'lock' | 'sleep'; ok: boolean } | null;
   onRequestClipboard: () => void;
   serverClipboard: string | null;
   clipboardLoading: boolean;
@@ -59,6 +60,7 @@ export const QuickControls: React.FC<QuickControlsProps> = ({
   onLiveBackspace,
   onLiveEnter,
   onSendPower,
+  powerResult,
   onRequestClipboard,
   serverClipboard,
   clipboardLoading,
@@ -91,6 +93,15 @@ export const QuickControls: React.FC<QuickControlsProps> = ({
     if (confirmTimerRef.current) clearTimeout(confirmTimerRef.current);
     confirmTimerRef.current = setTimeout(() => setConfirmPower(null), 3000);
   };
+
+  // Mirror the PC's power acknowledgment locally so it can auto-clear
+  const [powerNotice, setPowerNotice] = useState<{ action: 'lock' | 'sleep'; ok: boolean } | null>(null);
+  useEffect(() => {
+    if (!powerResult) return;
+    setPowerNotice(powerResult);
+    const t = setTimeout(() => setPowerNotice(null), 6000);
+    return () => clearTimeout(t);
+  }, [powerResult]);
 
   // Voice dictation removed: the Web Speech API needs a secure (HTTPS) context,
   // so the mic was unreliable on the plain-HTTP LAN server. Feature dropped.
@@ -492,6 +503,13 @@ export const QuickControls: React.FC<QuickControlsProps> = ({
             <span>{confirmPower === 'sleep' ? 'Tap again to sleep' : 'Sleep'}</span>
           </button>
         </div>
+        {powerNotice && (
+          <div className={`power-result ${powerNotice.ok ? 'ok' : 'fail'}`}>
+            {powerNotice.ok
+              ? (powerNotice.action === 'lock' ? 'PC accepted: screen locked' : 'PC accepted: suspending now…')
+              : 'PC refused the action — check the server console'}
+          </div>
+        )}
       </div>
 
       {/* PC Clipboard Card */}

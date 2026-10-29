@@ -258,12 +258,29 @@ class KursorServer:
                                 self.input_engine.press_key("escape")
 
                         elif msg_type == "power":
-                            # Guarded by a confirm step on the client side
+                            # Guarded by a confirm step on the client side;
+                            # always ack so the phone can show the outcome
                             act = data.get("action")
                             if act == "lock":
-                                self.sys_controls.lock_screen()
+                                ok = self.sys_controls.lock_screen()
+                                await ws.send_json({
+                                    "type": "power_result",
+                                    "action": "lock",
+                                    "ok": bool(ok),
+                                })
                             elif act == "sleep":
-                                self.sys_controls.sleep()
+                                ok = self.sys_controls.sleep()
+                                await ws.send_json({
+                                    "type": "power_result",
+                                    "action": "sleep",
+                                    "ok": bool(ok),
+                                })
+                            else:
+                                await ws.send_json({
+                                    "type": "power_result",
+                                    "action": act,
+                                    "ok": False,
+                                })
 
                         elif msg_type == "clipboard":
                             # Reply only to the requesting client

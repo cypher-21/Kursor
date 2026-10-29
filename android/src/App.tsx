@@ -198,6 +198,7 @@ export function App() {
             onLiveBackspace={socket.sendLiveBackspace}
             onLiveEnter={socket.sendLiveEnter}
             onSendPower={socket.sendPower}
+            powerResult={socket.powerResult}
             onRequestClipboard={socket.requestClipboard}
             serverClipboard={socket.serverClipboard}
             clipboardLoading={socket.clipboardLoading}
