@@ -613,27 +613,31 @@ html, body {
   color: var(--text-muted);
 }
 
-/* Real-Time Keyboard extras */
-.mic-toggle {
-  background: none;
-  border: 1.5px solid var(--border-subtle);
-  border-radius: var(--radius-full);
-  color: var(--text-muted);
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 24px;
-  height: 24px;
-  margin-left: 6px;
-  transition: all 0.1s ease;
+/* Real-Time Keyboard sectioned groups */
+.kb-section {
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px dashed var(--border-subtle);
 }
 
-.mic-toggle:active, .mic-toggle.active {
-  background: rgba(239, 68, 68, 0.16);
-  border-color: var(--accent-red);
-  color: var(--accent-red);
-  transform: scale(0.94);
+.kb-section-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.62rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+}
+
+.kb-section-label::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--border-subtle);
+  opacity: 0.6;
 }
 
 .fn-grid {

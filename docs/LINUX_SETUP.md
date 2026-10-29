@@ -117,5 +117,4 @@ journalctl --user -u kursor -f
 | Lock screen control | Supported (`loginctl lock-session`) | Supported (`LockWorkStation`) |
 | Sleep / suspend | Supported (`systemctl suspend`) | Supported (`SetSuspendState`) |
 | PC clipboard viewer | Supported (`wl-paste` / `xclip` / `xsel`) | Supported (PowerShell) |
-| Voice dictation | Phone Web Speech API -> PC typing | Phone Web Speech API -> PC typing |
 | Screenshot & zoom keys | Win+Shift+S, PrtSc, Ctrl +/-/0 | Win+Shift+S, PrtSc, Ctrl +/-/0 |

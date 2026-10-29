@@ -21,8 +21,6 @@ import {
   Undo2,
   XSquare,
   Send,
-  Mic,
-  MicOff,
   ZoomIn,
   ZoomOut,
   RotateCcw,
@@ -94,50 +92,11 @@ export const QuickControls: React.FC<QuickControlsProps> = ({
     confirmTimerRef.current = setTimeout(() => setConfirmPower(null), 3000);
   };
 
-  // Voice dictation: speech on the phone is typed live onto the PC.
-  const [voiceActive, setVoiceActive] = useState(false);
-  const recognitionRef = useRef<any>(null);
-  const voiceSupported = typeof window !== 'undefined' && !!(
-    (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
-  );
-
-  const toggleVoice = () => {
-    if (voiceActive) {
-      recognitionRef.current?.stop();
-      return;
-    }
-    const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-    if (!SR) return;
-    const rec = new SR();
-    rec.continuous = false;
-    rec.interimResults = false;
-    rec.lang = navigator.language;
-    rec.onresult = (e: any) => {
-      for (let i = e.resultIndex; i < e.results.length; i++) {
-        if (e.results[i].isFinal) {
-          const chunk = String(e.results[i][0].transcript).trim();
-          if (chunk) {
-            onSendText(chunk);
-            setLiveBuffer((b) => (b ? b + ' ' : '') + chunk);
-            haptics.success();
-          }
-        }
-      }
-    };
-    rec.onerror = () => {};
-    rec.onend = () => {
-      recognitionRef.current = null;
-      setVoiceActive(false);
-    };
-    recognitionRef.current = rec;
-    rec.start();
-    setVoiceActive(true);
-    haptics.click();
-  };
+  // Voice dictation removed: the Web Speech API needs a secure (HTTPS) context,
+  // so the mic was unreliable on the plain-HTTP LAN server. Feature dropped.
 
   useEffect(() => () => {
-    // unmount cleanup: no stray listeners/timers
-    try { recognitionRef.current?.stop(); } catch { /* noop */ }
+    // unmount cleanup: no stray timers
     if (confirmTimerRef.current) clearTimeout(confirmTimerRef.current);
   }, []);
 
@@ -241,29 +200,12 @@ export const QuickControls: React.FC<QuickControlsProps> = ({
           <div className="control-card-title">
             <Keyboard size={15} />
             <span>Real-Time Keyboard</span>
-            {voiceSupported && (
-              <button
-                className={`mic-toggle ${voiceActive ? 'active' : ''}`}
-                onClick={(e) => { e.stopPropagation(); toggleVoice(); }}
-                onMouseDown={(e) => e.preventDefault()}
-                title={voiceActive ? 'Stop voice dictation' : 'Voice dictation: speak on phone, typed on PC'}
-              >
-                {voiceActive ? <MicOff size={13} /> : <Mic size={13} />}
-              </button>
-            )}
           </div>
-          <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
-            {voiceActive && (
-              <span className="status-badge connected" style={{ fontSize: '0.65rem' }}>
-                Listening…
-              </span>
-            )}
-            {isLiveActive && (
-              <span className="status-badge connected" style={{ fontSize: '0.65rem' }}>
-                Active
-              </span>
-            )}
-          </div>
+          {isLiveActive && (
+            <span className="status-badge connected" style={{ fontSize: '0.65rem' }}>
+              Active
+            </span>
+          )}
         </div>
 
         {/* Live keyboard: a real, visible textarea -> native caret stays visible,
@@ -299,83 +241,98 @@ export const QuickControls: React.FC<QuickControlsProps> = ({
           </div>
         )}
 
-        {/* Essential PC Keys Toolbar */}
-        <div className="key-toolbar" onClick={(e) => e.stopPropagation()} onMouseDown={(e) => e.preventDefault()}>
-          <button className="key-chip" onClick={() => { haptics.tick(); onSendKey('escape'); }}>Esc</button>
-          <button className="key-chip" onClick={() => { haptics.tick(); onSendKey('tab'); }}>Tab</button>
-          <button className="key-chip" onClick={() => { haptics.tick(); onSendKey('ctrl'); }}>Ctrl</button>
-          <button className="key-chip" onClick={() => { haptics.tick(); onSendKey('alt'); }}>Alt</button>
-          <button className="key-chip" onClick={() => { haptics.heavy(); onSendKey('super'); }}>Win</button>
-          <button className="key-chip" onClick={() => { haptics.tick(); onSendKey('delete'); }}>Del</button>
-          <button className="key-chip" onClick={() => { haptics.tick(); onLiveBackspace(); }}>
-            <Delete size={13} style={{ verticalAlign: 'middle' }} /> Bksp
-          </button>
-          <button className="key-chip" onClick={() => { haptics.click(); onLiveEnter(); }}>
-            <CornerDownLeft size={13} style={{ verticalAlign: 'middle' }} /> Enter
-          </button>
-        </div>
-
-        {/* Directional & Nav Keys */}
-        <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }} onClick={(e) => e.stopPropagation()} onMouseDown={(e) => e.preventDefault()}>
-          <button className="key-chip" style={{ flex: 1 }} onClick={() => { haptics.tick(); onSendKey('up'); }}>
-            <ArrowUp size={14} style={{ margin: '0 auto' }} />
-          </button>
-          <button className="key-chip" style={{ flex: 1 }} onClick={() => { haptics.tick(); onSendKey('down'); }}>
-            <ArrowDown size={14} style={{ margin: '0 auto' }} />
-          </button>
-          <button className="key-chip" style={{ flex: 1 }} onClick={() => { haptics.tick(); onSendKey('left'); }}>
-            <ArrowLeft size={14} style={{ margin: '0 auto' }} />
-          </button>
-          <button className="key-chip" style={{ flex: 1 }} onClick={() => { haptics.tick(); onSendKey('right'); }}>
-            <ArrowRight size={14} style={{ margin: '0 auto' }} />
-          </button>
-        </div>
-
-        {/* Common PC Shortcuts */}
-        <div className="key-toolbar" onClick={(e) => e.stopPropagation()} onMouseDown={(e) => e.preventDefault()}>
-          <button className="key-chip" onClick={() => { haptics.click(); onSendKey('ctrl_c'); }}>
-            <Copy size={12} style={{ verticalAlign: 'middle', marginRight: '4px' }} />Copy
-          </button>
-          <button className="key-chip" onClick={() => { haptics.click(); onSendKey('ctrl_v'); }}>
-            <Clipboard size={12} style={{ verticalAlign: 'middle', marginRight: '4px' }} />Paste
-          </button>
-          <button className="key-chip" onClick={() => { haptics.click(); onSendKey('ctrl_z'); }}>
-            <Undo2 size={12} style={{ verticalAlign: 'middle', marginRight: '4px' }} />Undo
-          </button>
-          <button className="key-chip" onClick={() => { haptics.click(); onSendKey('ctrl_a'); }}>
-            Sel All
-          </button>
-          <button className="key-chip" onClick={() => { haptics.heavy(); onSendKey('alt_f4'); }}>
-            <XSquare size={12} style={{ verticalAlign: 'middle', marginRight: '4px' }} />Close
-          </button>
-        </div>
-
-        {/* Function keys F1-F12 */}
-        <div className="fn-grid" onClick={(e) => e.stopPropagation()} onMouseDown={(e) => e.preventDefault()}>
-          {['F1','F2','F3','F4','F5','F6','F7','F8','F9','F10','F11','F12'].map((fn) => (
-            <button key={fn} className="key-chip" onClick={() => { haptics.tick(); onSendKey(fn.toLowerCase()); }}>
-              {fn}
+        {/* ── System keys ─────────────────────────────────────────── */}
+        <div className="kb-section">
+          <div className="kb-section-label">System keys</div>
+          <div className="key-toolbar" onClick={(e) => e.stopPropagation()} onMouseDown={(e) => e.preventDefault()}>
+            <button className="key-chip" onClick={() => { haptics.tick(); onSendKey('escape'); }}>Esc</button>
+            <button className="key-chip" onClick={() => { haptics.tick(); onSendKey('tab'); }}>Tab</button>
+            <button className="key-chip" onClick={() => { haptics.tick(); onSendKey('ctrl'); }}>Ctrl</button>
+            <button className="key-chip" onClick={() => { haptics.tick(); onSendKey('alt'); }}>Alt</button>
+            <button className="key-chip" onClick={() => { haptics.heavy(); onSendKey('super'); }}>Win</button>
+            <button className="key-chip" onClick={() => { haptics.tick(); onSendKey('delete'); }}>Del</button>
+            <button className="key-chip" onClick={() => { haptics.tick(); onLiveBackspace(); }}>
+              <Delete size={13} style={{ verticalAlign: 'middle' }} /> Bksp
             </button>
-          ))}
+            <button className="key-chip" onClick={() => { haptics.click(); onLiveEnter(); }}>
+              <CornerDownLeft size={13} style={{ verticalAlign: 'middle' }} /> Enter
+            </button>
+          </div>
         </div>
 
-        {/* Zoom & Screen capture */}
-        <div className="key-toolbar" onClick={(e) => e.stopPropagation()} onMouseDown={(e) => e.preventDefault()}>
-          <button className="key-chip" onClick={() => { haptics.tick(); onSendKey('zoom_out'); }} title="Zoom out (Ctrl -)">
-            <ZoomOut size={12} style={{ verticalAlign: 'middle', marginRight: '4px' }} />Zoom −
-          </button>
-          <button className="key-chip" onClick={() => { haptics.tick(); onSendKey('zoom_in'); }} title="Zoom in (Ctrl +)">
-            <ZoomIn size={12} style={{ verticalAlign: 'middle', marginRight: '4px' }} />Zoom +
-          </button>
-          <button className="key-chip" onClick={() => { haptics.tick(); onSendKey('zoom_reset'); }} title="Reset zoom (Ctrl 0)">
-            <RotateCcw size={12} style={{ verticalAlign: 'middle', marginRight: '4px' }} />100%
-          </button>
-          <button className="key-chip" onClick={() => { haptics.heavy(); onSendKey('win_shift_s'); }} title="Snipping overlay (Win+Shift+S)">
-            <Camera size={12} style={{ verticalAlign: 'middle', marginRight: '4px' }} />Snip
-          </button>
-          <button className="key-chip" onClick={() => { haptics.heavy(); onSendKey('print'); }} title="Full screen (PrtSc)">
-            <Monitor size={12} style={{ verticalAlign: 'middle', marginRight: '4px' }} />PrtSc
-          </button>
+        {/* ── Navigation ──────────────────────────────────────────── */}
+        <div className="kb-section">
+          <div className="kb-section-label">Navigation</div>
+          <div className="key-toolbar" onClick={(e) => e.stopPropagation()} onMouseDown={(e) => e.preventDefault()}>
+            <button className="key-chip" style={{ flex: 1 }} onClick={() => { haptics.tick(); onSendKey('up'); }}>
+              <ArrowUp size={14} style={{ margin: '0 auto' }} />
+            </button>
+            <button className="key-chip" style={{ flex: 1 }} onClick={() => { haptics.tick(); onSendKey('down'); }}>
+              <ArrowDown size={14} style={{ margin: '0 auto' }} />
+            </button>
+            <button className="key-chip" style={{ flex: 1 }} onClick={() => { haptics.tick(); onSendKey('left'); }}>
+              <ArrowLeft size={14} style={{ margin: '0 auto' }} />
+            </button>
+            <button className="key-chip" style={{ flex: 1 }} onClick={() => { haptics.tick(); onSendKey('right'); }}>
+              <ArrowRight size={14} style={{ margin: '0 auto' }} />
+            </button>
+          </div>
+        </div>
+
+        {/* ── Editing & shortcuts ─────────────────────────────────── */}
+        <div className="kb-section">
+          <div className="kb-section-label">Editing &amp; shortcuts</div>
+          <div className="key-toolbar" onClick={(e) => e.stopPropagation()} onMouseDown={(e) => e.preventDefault()}>
+            <button className="key-chip" onClick={() => { haptics.click(); onSendKey('ctrl_c'); }}>
+              <Copy size={12} style={{ verticalAlign: 'middle', marginRight: '4px' }} />Copy
+            </button>
+            <button className="key-chip" onClick={() => { haptics.click(); onSendKey('ctrl_v'); }}>
+              <Clipboard size={12} style={{ verticalAlign: 'middle', marginRight: '4px' }} />Paste
+            </button>
+            <button className="key-chip" onClick={() => { haptics.click(); onSendKey('ctrl_z'); }}>
+              <Undo2 size={12} style={{ verticalAlign: 'middle', marginRight: '4px' }} />Undo
+            </button>
+            <button className="key-chip" onClick={() => { haptics.click(); onSendKey('ctrl_a'); }}>
+              Sel All
+            </button>
+            <button className="key-chip" onClick={() => { haptics.heavy(); onSendKey('alt_f4'); }}>
+              <XSquare size={12} style={{ verticalAlign: 'middle', marginRight: '4px' }} />Close
+            </button>
+          </div>
+        </div>
+
+        {/* ── Function keys ───────────────────────────────────────── */}
+        <div className="kb-section">
+          <div className="kb-section-label">Function keys</div>
+          <div className="fn-grid" onClick={(e) => e.stopPropagation()} onMouseDown={(e) => e.preventDefault()}>
+            {['F1','F2','F3','F4','F5','F6','F7','F8','F9','F10','F11','F12'].map((fn) => (
+              <button key={fn} className="key-chip" onClick={() => { haptics.tick(); onSendKey(fn.toLowerCase()); }}>
+                {fn}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* ── Zoom & capture ──────────────────────────────────────── */}
+        <div className="kb-section">
+          <div className="kb-section-label">Zoom &amp; capture</div>
+          <div className="key-toolbar" onClick={(e) => e.stopPropagation()} onMouseDown={(e) => e.preventDefault()}>
+            <button className="key-chip" onClick={() => { haptics.tick(); onSendKey('zoom_out'); }} title="Zoom out (Ctrl -)">
+              <ZoomOut size={12} style={{ verticalAlign: 'middle', marginRight: '4px' }} />Zoom −
+            </button>
+            <button className="key-chip" onClick={() => { haptics.tick(); onSendKey('zoom_in'); }} title="Zoom in (Ctrl +)">
+              <ZoomIn size={12} style={{ verticalAlign: 'middle', marginRight: '4px' }} />Zoom +
+            </button>
+            <button className="key-chip" onClick={() => { haptics.tick(); onSendKey('zoom_reset'); }} title="Reset zoom (Ctrl 0)">
+              <RotateCcw size={12} style={{ verticalAlign: 'middle', marginRight: '4px' }} />100%
+            </button>
+            <button className="key-chip" onClick={() => { haptics.heavy(); onSendKey('win_shift_s'); }} title="Snipping overlay (Win+Shift+S)">
+              <Camera size={12} style={{ verticalAlign: 'middle', marginRight: '4px' }} />Snip
+            </button>
+            <button className="key-chip" onClick={() => { haptics.heavy(); onSendKey('print'); }} title="Full screen (PrtSc)">
+              <Monitor size={12} style={{ verticalAlign: 'middle', marginRight: '4px' }} />PrtSc
+            </button>
+          </div>
         </div>
       </div>
 

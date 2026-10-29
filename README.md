@@ -41,7 +41,6 @@ An open-source desktop control system engineered for **Windows** (10/11) and **L
   - Function keys F1-F12, zoom keys (Ctrl +/-/0), screenshot keys (Win+Shift+S snip, PrtSc).
   - **Power actions (confirm-guarded)**: Lock screen & Sleep - Windows (`LockWorkStation` / `SetSuspendState`) and Linux (`loginctl lock-session` / `systemctl suspend`).
   - **PC Clipboard viewer**: read the PC clipboard to the phone, paste it on the PC, copy it to the phone, or retype it (Wayland `wl-paste`, X11 `xclip`/`xsel`, Windows PowerShell).
-  - **Voice dictation**: tap the mic and speak - the phone's Web Speech API streams recognized text to the PC (requires Chrome; served over HTTPS or localhost for browser permission).
 
 - **High-Performance Desktop Engines**:
   - **Windows**: Native Win32 API (`ctypes.windll.user32`) input driver with sub-notch wheel delta accumulation for lag-free cursor tracking.
