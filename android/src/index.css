@@ -575,49 +575,112 @@ html, body {
   border-color: var(--border-strong);
 }
 
-/* Live Keyboard Card */
-.live-keyboard-wrapper {
-  position: relative;
+/* Live Keyboard Card - the input IS the display (native caret always visible) */
+.live-keyboard-input {
   width: 100%;
-}
-
-.live-keyboard-textarea {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  opacity: 0;
-  z-index: 2;
-  resize: none;
-  border: none;
-  outline: none;
-  font-size: 16px; /* Prevents mobile browser auto-zoom */
-  cursor: text;
-}
-
-.live-keyboard-display {
-  width: 100%;
+  min-height: 64px;
+  max-height: 64px;
   background: #000000;
   border: 1.5px solid var(--border-medium);
   border-radius: var(--radius-md);
-  padding: 12px 14px;
-  color: var(--text-muted);
+  padding: 10px 12px;
+  color: var(--text-secondary);
+  caret-color: #ffffff;
   font-family: var(--font-sans);
-  font-size: 0.92rem;
-  min-height: 48px;
+  font-size: 16px; /* prevents mobile browser auto-zoom on focus */
+  line-height: 1.4;
+  resize: none;
+  outline: none;
+  overflow-y: auto;
+  transition: border-color 0.15s ease;
+  display: block;
+}
+
+.live-keyboard-input::placeholder {
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}
+
+.live-keyboard-input.focused {
+  border-color: var(--border-focus);
+  color: #ffffff;
+  box-shadow: 0 0 0 1px var(--border-focus);
+}
+
+.card-hint {
+  font-size: 0.7rem;
+  line-height: 1.35;
+  color: var(--text-muted);
+}
+
+/* Real-Time Keyboard extras */
+.mic-toggle {
+  background: none;
+  border: 1.5px solid var(--border-subtle);
+  border-radius: var(--radius-full);
+  color: var(--text-muted);
+  cursor: pointer;
   display: flex;
   align-items: center;
-  transition: all 0.15s ease;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  margin-left: 6px;
+  transition: all 0.1s ease;
+}
+
+.mic-toggle:active, .mic-toggle.active {
+  background: rgba(239, 68, 68, 0.16);
+  border-color: var(--accent-red);
+  color: var(--accent-red);
+  transform: scale(0.94);
+}
+
+.fn-grid {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 6px;
+}
+
+.power-row {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+}
+
+.tool-btn.confirm {
+  color: var(--accent-red);
+  border-color: var(--accent-red);
+  background: rgba(239, 68, 68, 0.08);
+}
+
+.clipboard-view {
+  background: #000000;
+  border: 1.5px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 10px 12px;
+  color: var(--text-secondary);
+  font-size: 0.82rem;
+  line-height: 1.4;
+  min-height: 44px;
+  max-height: 120px;
+  overflow-y: auto;
   user-select: text;
   -webkit-user-select: text;
   word-break: break-word;
 }
 
-.live-keyboard-display.focused {
-  border-color: var(--border-focus);
-  color: #ffffff;
-  box-shadow: 0 0 0 1px var(--border-focus);
+.key-chip.dimmed {
+  opacity: 0.45;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.spin {
+  animation: spin 0.9s linear infinite;
 }
 
 .live-buffer-display {

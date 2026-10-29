@@ -37,6 +37,11 @@ An open-source desktop control system engineered for **Windows** (10/11) and **L
   - Do Not Disturb (DND) notification toggle.
   - **Live Keyboard Input**: Keystrokes, backspaces, and enters transmit immediately to the active PC window with exact casing (bypasses host Caps Lock), full punctuation support on Windows & Linux, and Unicode support via the Windows Win32 driver.
   - Virtual PC Modifier Keys: Esc, Tab, Ctrl, Alt, Win, Del, navigation arrows, and common shortcuts (Ctrl+C, Ctrl+V, Ctrl+Z, Ctrl+A, Alt+F4).
+  - **Media keys that just work**: play/pause/next/prev fall back to virtual hardware media keys (uinput) when `playerctl` isn't installed.
+  - Function keys F1-F12, zoom keys (Ctrl +/-/0), screenshot keys (Win+Shift+S snip, PrtSc).
+  - **Power actions (confirm-guarded)**: Lock screen & Sleep - Windows (`LockWorkStation` / `SetSuspendState`) and Linux (`loginctl lock-session` / `systemctl suspend`).
+  - **PC Clipboard viewer**: read the PC clipboard to the phone, paste it on the PC, copy it to the phone, or retype it (Wayland `wl-paste`, X11 `xclip`/`xsel`, Windows PowerShell).
+  - **Voice dictation**: tap the mic and speak - the phone's Web Speech API streams recognized text to the PC (requires Chrome; served over HTTPS or localhost for browser permission).
 
 - **High-Performance Desktop Engines**:
   - **Windows**: Native Win32 API (`ctypes.windll.user32`) input driver with sub-notch wheel delta accumulation for lag-free cursor tracking.

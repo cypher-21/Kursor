@@ -39,6 +39,10 @@ export interface UseSocketReturn {
   sendLiveInput: (char: string) => void;
   sendLiveBackspace: () => void;
   sendLiveEnter: () => void;
+  sendPower: (action: 'lock' | 'sleep') => void;
+  requestClipboard: () => void;
+  serverClipboard: string | null;
+  clipboardLoading: boolean;
   toggleDnd: () => void;
 }
 
@@ -56,6 +60,9 @@ export function useSocket(): UseSocketReturn {
     battery: null,
     charging: false
   });
+  // Text fetched from the PC clipboard (null = requested but empty/unreadable)
+  const [serverClipboard, setServerClipboard] = useState<string | null>(null);
+  const [clipboardLoading, setClipboardLoading] = useState(false);
 
   // Determine initial host & port
   const getInitialHost = () => {
@@ -216,6 +223,10 @@ export function useSocket(): UseSocketReturn {
             }
           } else if (data.type === 'dnd_state') {
             setSystemStatus((prev) => ({ ...prev, dnd: data.active }));
+          } else if (data.type === 'clipboard_text') {
+            // Reply to a requestClipboard() call (may be null = empty/unreadable)
+            setServerClipboard(data.text ?? null);
+            setClipboardLoading(false);
           }
         } catch (err) {
           console.error('[Kursor] Message parse error:', err);
@@ -317,6 +328,15 @@ export function useSocket(): UseSocketReturn {
     sendRaw({ type: 'live_enter' });
   }, [sendRaw]);
 
+  const sendPower = useCallback((action: 'lock' | 'sleep') => {
+    sendRaw({ type: 'power', action });
+  }, [sendRaw]);
+
+  const requestClipboard = useCallback(() => {
+    setClipboardLoading(true);
+    sendRaw({ type: 'clipboard', action: 'get' });
+  }, [sendRaw]);
+
   return {
     connected,
     reconnecting,
@@ -341,6 +361,10 @@ export function useSocket(): UseSocketReturn {
     sendLiveInput,
     sendLiveBackspace,
     sendLiveEnter,
+    sendPower,
+    requestClipboard,
+    serverClipboard,
+    clipboardLoading,
     toggleDnd
   };
 }

@@ -58,7 +58,7 @@ class KursorServer:
         
         # Core engines
         self.input_engine = create_input_backend(self.config.get("preferred_backend", "auto"))
-        self.sys_controls = SystemControls()
+        self.sys_controls = SystemControls(input_backend=self.input_engine)
 
         default_name = f"Kursor ({'Windows' if sys.platform == 'win32' else 'Linux'})"
         self.server_name = self.config.get("name", default_name)
@@ -256,6 +256,24 @@ class KursorServer:
                                 self.input_engine.press_key("f5")
                             elif action == "exit":
                                 self.input_engine.press_key("escape")
+
+                        elif msg_type == "power":
+                            # Guarded by a confirm step on the client side
+                            act = data.get("action")
+                            if act == "lock":
+                                self.sys_controls.lock_screen()
+                            elif act == "sleep":
+                                self.sys_controls.sleep()
+
+                        elif msg_type == "clipboard":
+                            # Reply only to the requesting client
+                            act = data.get("action")
+                            if act == "get":
+                                text = self.sys_controls.get_clipboard_text()
+                                await ws.send_json({
+                                    "type": "clipboard_text",
+                                    "text": text,
+                                })
 
                         elif msg_type == "media":
                             action = data.get("action")

@@ -49,6 +49,8 @@ KEY_MAP = {
     "play_pause": "KEY_PLAYPAUSE",
     "next_track": "KEY_NEXTSONG",
     "prev_track": "KEY_PREVIOUSSONG",
+    "print": "KEY_PRINT",
+    "print_screen": "KEY_PRINT",
 }
 
 class UInputBackend(InputBackend):
@@ -63,17 +65,19 @@ class UInputBackend(InputBackend):
             raise RuntimeError("Python 'evdev' module is not installed. Install via: pip install evdev")
 
         # Define capabilities for virtual mouse & keyboard
+        key_caps = [
+            e.BTN_LEFT, e.BTN_RIGHT, e.BTN_MIDDLE, e.BTN_SIDE, e.BTN_EXTRA,
+            e.KEY_ESC, e.KEY_F5, e.KEY_PAGEDOWN, e.KEY_PAGEUP,
+            e.KEY_LEFT, e.KEY_RIGHT, e.KEY_UP, e.KEY_DOWN,
+            e.KEY_B, e.KEY_W, e.KEY_ENTER, e.KEY_BACKSPACE, e.KEY_TAB, e.KEY_SPACE,
+            e.KEY_LEFTMETA, e.KEY_D, e.KEY_LEFTCTRL, e.KEY_LEFTALT, e.KEY_LEFTSHIFT,
+            e.KEY_VOLUMEUP, e.KEY_VOLUMEDOWN, e.KEY_MUTE,
+            e.KEY_PLAYPAUSE, e.KEY_NEXTSONG, e.KEY_PREVIOUSSONG,
+            getattr(e, "KEY_PRINT", None),   # None on some old evdev releases
+        ]
         cap = {
             e.EV_REL: [e.REL_X, e.REL_Y, e.REL_WHEEL, e.REL_HWHEEL],
-            e.EV_KEY: [
-                e.BTN_LEFT, e.BTN_RIGHT, e.BTN_MIDDLE, e.BTN_SIDE, e.BTN_EXTRA,
-                e.KEY_ESC, e.KEY_F5, e.KEY_PAGEDOWN, e.KEY_PAGEUP,
-                e.KEY_LEFT, e.KEY_RIGHT, e.KEY_UP, e.KEY_DOWN,
-                e.KEY_B, e.KEY_W, e.KEY_ENTER, e.KEY_BACKSPACE, e.KEY_TAB, e.KEY_SPACE,
-                e.KEY_LEFTMETA, e.KEY_D, e.KEY_LEFTCTRL, e.KEY_LEFTALT, e.KEY_LEFTSHIFT,
-                e.KEY_VOLUMEUP, e.KEY_VOLUMEDOWN, e.KEY_MUTE,
-                e.KEY_PLAYPAUSE, e.KEY_NEXTSONG, e.KEY_PREVIOUSSONG
-            ]
+            e.EV_KEY: [k for k in key_caps if k is not None],
         }
         # Add basic alphanumeric keys
         for key_code in range(e.KEY_1, e.KEY_EQUAL + 1):
@@ -238,6 +242,21 @@ class UInputBackend(InputBackend):
             self.device.write(e.EV_KEY, e.KEY_LEFTALT, 0)
             self.device.syn()
             return
+        elif norm in ("ctrl_plus", "ctrl+plus", "zoom_in"):
+            self._combo_two(e.KEY_LEFTCTRL, e.KEY_EQUAL)
+            return
+        elif norm in ("ctrl_minus", "ctrl+minus", "zoom_out"):
+            self._combo_two(e.KEY_LEFTCTRL, e.KEY_MINUS)
+            return
+        elif norm in ("ctrl_0", "ctrl+0", "zoom_reset"):
+            self._combo_two(e.KEY_LEFTCTRL, e.KEY_0)
+            return
+        elif norm in ("win_l", "win+l", "lock"):
+            self._combo_two(e.KEY_LEFTMETA, e.KEY_L)
+            return
+        elif norm in ("win_shift_s", "win+shift+s", "shot_snip"):
+            self._combo_three(e.KEY_LEFTMETA, e.KEY_LEFTSHIFT, e.KEY_S)
+            return
 
         code_name = KEY_MAP.get(norm)
         if not code_name and hasattr(e, f"KEY_{norm.upper()}"):
@@ -269,6 +288,28 @@ class UInputBackend(InputBackend):
         "<": "KEY_COMMA", ">": "KEY_DOT",
         "_SHIFT_REQUIRED_": "!@#$%^&*()_+{}|?:\"<>~",
     }
+
+    def _combo_two(self, mod_code: int, key_code: int) -> None:
+        """Press-and-release a single-modifier combo (Ctrl/X, Win/X)."""
+        self.device.write(e.EV_KEY, mod_code, 1)
+        self.device.write(e.EV_KEY, key_code, 1)
+        self.device.syn()
+        time.sleep(0.02)
+        self.device.write(e.EV_KEY, key_code, 0)
+        self.device.write(e.EV_KEY, mod_code, 0)
+        self.device.syn()
+
+    def _combo_three(self, mod1: int, mod2: int, key_code: int) -> None:
+        """Press-and-release a two-modifier combo (Win+Shift+S)."""
+        self.device.write(e.EV_KEY, mod1, 1)
+        self.device.write(e.EV_KEY, mod2, 1)
+        self.device.write(e.EV_KEY, key_code, 1)
+        self.device.syn()
+        time.sleep(0.02)
+        self.device.write(e.EV_KEY, key_code, 0)
+        self.device.write(e.EV_KEY, mod2, 0)
+        self.device.write(e.EV_KEY, mod1, 0)
+        self.device.syn()
 
     def type_text(self, text: str) -> None:
         shift_chars = self._TEXT_KEYS["_SHIFT_REQUIRED_"]

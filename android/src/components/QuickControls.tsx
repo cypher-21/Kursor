@@ -1,4 +1,4 @@
-import React, { useState, useRef, useCallback } from 'react';
+import React, { useState, useRef, useCallback, useEffect } from 'react';
 import {
   Volume2,
   VolumeX,
@@ -21,6 +21,17 @@ import {
   Undo2,
   XSquare,
   Send,
+  Mic,
+  MicOff,
+  ZoomIn,
+  ZoomOut,
+  RotateCcw,
+  Camera,
+  Monitor,
+  Lock,
+  Power,
+  Moon,
+  RefreshCw,
 } from 'lucide-react';
 import { useHaptics } from '../hooks/useHaptics';
 import type { SystemStatus } from '../hooks/useSocket';
@@ -34,6 +45,10 @@ interface QuickControlsProps {
   onLiveInput: (char: string) => void;
   onLiveBackspace: () => void;
   onLiveEnter: () => void;
+  onSendPower: (action: 'lock' | 'sleep') => void;
+  onRequestClipboard: () => void;
+  serverClipboard: string | null;
+  clipboardLoading: boolean;
 }
 
 export const QuickControls: React.FC<QuickControlsProps> = ({
@@ -45,6 +60,10 @@ export const QuickControls: React.FC<QuickControlsProps> = ({
   onLiveInput,
   onLiveBackspace,
   onLiveEnter,
+  onSendPower,
+  onRequestClipboard,
+  serverClipboard,
+  clipboardLoading,
 }) => {
   const haptics = useHaptics();
   const [isPlaying, setIsPlaying] = useState(false);
@@ -54,8 +73,73 @@ export const QuickControls: React.FC<QuickControlsProps> = ({
   const [liveBuffer, setLiveBuffer] = useState('');
   const [isLiveActive, setIsLiveActive] = useState(false);
   const [bulkText, setBulkText] = useState('');
+  const [bulkEnter, setBulkEnter] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const prevValueRef = useRef('');
+
+  // Power actions need a confirming second tap (destructive-ish guard)
+  const [confirmPower, setConfirmPower] = useState<'lock' | 'sleep' | null>(null);
+  const confirmTimerRef = useRef<any>(null);
+  const handlePowerTap = (action: 'lock' | 'sleep') => {
+    haptics.heavy();
+    if (confirmPower === action) {
+      // Confirmed: fire & disarm
+      if (confirmTimerRef.current) clearTimeout(confirmTimerRef.current);
+      setConfirmPower(null);
+      onSendPower(action);
+      return;
+    }
+    setConfirmPower(action);
+    if (confirmTimerRef.current) clearTimeout(confirmTimerRef.current);
+    confirmTimerRef.current = setTimeout(() => setConfirmPower(null), 3000);
+  };
+
+  // Voice dictation: speech on the phone is typed live onto the PC.
+  const [voiceActive, setVoiceActive] = useState(false);
+  const recognitionRef = useRef<any>(null);
+  const voiceSupported = typeof window !== 'undefined' && !!(
+    (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
+  );
+
+  const toggleVoice = () => {
+    if (voiceActive) {
+      recognitionRef.current?.stop();
+      return;
+    }
+    const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SR) return;
+    const rec = new SR();
+    rec.continuous = false;
+    rec.interimResults = false;
+    rec.lang = navigator.language;
+    rec.onresult = (e: any) => {
+      for (let i = e.resultIndex; i < e.results.length; i++) {
+        if (e.results[i].isFinal) {
+          const chunk = String(e.results[i][0].transcript).trim();
+          if (chunk) {
+            onSendText(chunk);
+            setLiveBuffer((b) => (b ? b + ' ' : '') + chunk);
+            haptics.success();
+          }
+        }
+      }
+    };
+    rec.onerror = () => {};
+    rec.onend = () => {
+      recognitionRef.current = null;
+      setVoiceActive(false);
+    };
+    recognitionRef.current = rec;
+    rec.start();
+    setVoiceActive(true);
+    haptics.click();
+  };
+
+  useEffect(() => () => {
+    // unmount cleanup: no stray listeners/timers
+    try { recognitionRef.current?.stop(); } catch { /* noop */ }
+    if (confirmTimerRef.current) clearTimeout(confirmTimerRef.current);
+  }, []);
 
   // Focus the hidden textarea when user taps the keyboard card
   const activateKeyboard = useCallback(() => {
@@ -142,6 +226,10 @@ export const QuickControls: React.FC<QuickControlsProps> = ({
     if (!bulkText) return;
     haptics.tick();
     onSendText(bulkText);
+    if (bulkEnter) {
+      // Type the text, then press Enter (e.g. open a URL in the browser)
+      setTimeout(() => onLiveEnter(), 300);
+    }
     setBulkText('');
   };
 
@@ -153,46 +241,54 @@ export const QuickControls: React.FC<QuickControlsProps> = ({
           <div className="control-card-title">
             <Keyboard size={15} />
             <span>Real-Time Keyboard</span>
+            {voiceSupported && (
+              <button
+                className={`mic-toggle ${voiceActive ? 'active' : ''}`}
+                onClick={(e) => { e.stopPropagation(); toggleVoice(); }}
+                onMouseDown={(e) => e.preventDefault()}
+                title={voiceActive ? 'Stop voice dictation' : 'Voice dictation: speak on phone, typed on PC'}
+              >
+                {voiceActive ? <MicOff size={13} /> : <Mic size={13} />}
+              </button>
+            )}
           </div>
-          {isLiveActive && (
-            <span className="status-badge connected" style={{ fontSize: '0.65rem' }}>
-              Active
-            </span>
-          )}
+          <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+            {voiceActive && (
+              <span className="status-badge connected" style={{ fontSize: '0.65rem' }}>
+                Listening…
+              </span>
+            )}
+            {isLiveActive && (
+              <span className="status-badge connected" style={{ fontSize: '0.65rem' }}>
+                Active
+              </span>
+            )}
+          </div>
         </div>
 
-        {/* Hidden textarea that captures all mobile keyboard input */}
-        <div className="live-keyboard-wrapper">
-          <textarea
-            ref={textareaRef}
-            className="live-keyboard-textarea"
-            onInput={handleInput}
-            onKeyDown={handleKeyDown}
-            onFocus={handleFocus}
-            onBlur={handleBlur}
-            autoComplete="off"
-            autoCorrect="off"
-            autoCapitalize="none"
-            spellCheck={false}
-            enterKeyHint="send"
-            inputMode="text"
-            aria-label="Live keyboard input"
-          />
-          <div
-            className={`live-keyboard-display ${isLiveActive ? 'focused' : ''}`}
-            onClick={activateKeyboard}
-          >
-            {isLiveActive
-              ? (liveBuffer || 'Typing... (keyboard open)')
-              : 'Tap here to open keyboard and type live...'
-            }
-          </div>
-        </div>
+        {/* Live keyboard: a real, visible textarea -> native caret stays visible,
+            fixed height so the card never reflows while typing */}
+        <textarea
+          ref={textareaRef}
+          className={`live-keyboard-input ${isLiveActive ? 'focused' : ''}`}
+          rows={2}
+          onClick={(e) => e.stopPropagation()}
+          onInput={handleInput}
+          onKeyDown={handleKeyDown}
+          onFocus={handleFocus}
+          onBlur={handleBlur}
+          autoComplete="off"
+          autoCorrect="off"
+          autoCapitalize="none"
+          spellCheck={false}
+          placeholder="Tap here and type — every keystroke lands on the PC as you type…"
+          aria-label="Live keyboard input"
+        />
 
         {liveBuffer && (
           <div className="live-buffer-display">
             <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-              Sent: {liveBuffer}
+              Last sent: {liveBuffer}
             </span>
             <button
               onClick={(e) => { e.stopPropagation(); setLiveBuffer(''); }}
@@ -204,7 +300,7 @@ export const QuickControls: React.FC<QuickControlsProps> = ({
         )}
 
         {/* Essential PC Keys Toolbar */}
-        <div className="key-toolbar" onClick={(e) => e.stopPropagation()}>
+        <div className="key-toolbar" onClick={(e) => e.stopPropagation()} onMouseDown={(e) => e.preventDefault()}>
           <button className="key-chip" onClick={() => { haptics.tick(); onSendKey('escape'); }}>Esc</button>
           <button className="key-chip" onClick={() => { haptics.tick(); onSendKey('tab'); }}>Tab</button>
           <button className="key-chip" onClick={() => { haptics.tick(); onSendKey('ctrl'); }}>Ctrl</button>
@@ -220,7 +316,7 @@ export const QuickControls: React.FC<QuickControlsProps> = ({
         </div>
 
         {/* Directional & Nav Keys */}
-        <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }} onClick={(e) => e.stopPropagation()}>
+        <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }} onClick={(e) => e.stopPropagation()} onMouseDown={(e) => e.preventDefault()}>
           <button className="key-chip" style={{ flex: 1 }} onClick={() => { haptics.tick(); onSendKey('up'); }}>
             <ArrowUp size={14} style={{ margin: '0 auto' }} />
           </button>
@@ -236,7 +332,7 @@ export const QuickControls: React.FC<QuickControlsProps> = ({
         </div>
 
         {/* Common PC Shortcuts */}
-        <div className="key-toolbar" onClick={(e) => e.stopPropagation()}>
+        <div className="key-toolbar" onClick={(e) => e.stopPropagation()} onMouseDown={(e) => e.preventDefault()}>
           <button className="key-chip" onClick={() => { haptics.click(); onSendKey('ctrl_c'); }}>
             <Copy size={12} style={{ verticalAlign: 'middle', marginRight: '4px' }} />Copy
           </button>
@@ -253,20 +349,51 @@ export const QuickControls: React.FC<QuickControlsProps> = ({
             <XSquare size={12} style={{ verticalAlign: 'middle', marginRight: '4px' }} />Close
           </button>
         </div>
+
+        {/* Function keys F1-F12 */}
+        <div className="fn-grid" onClick={(e) => e.stopPropagation()} onMouseDown={(e) => e.preventDefault()}>
+          {['F1','F2','F3','F4','F5','F6','F7','F8','F9','F10','F11','F12'].map((fn) => (
+            <button key={fn} className="key-chip" onClick={() => { haptics.tick(); onSendKey(fn.toLowerCase()); }}>
+              {fn}
+            </button>
+          ))}
+        </div>
+
+        {/* Zoom & Screen capture */}
+        <div className="key-toolbar" onClick={(e) => e.stopPropagation()} onMouseDown={(e) => e.preventDefault()}>
+          <button className="key-chip" onClick={() => { haptics.tick(); onSendKey('zoom_out'); }} title="Zoom out (Ctrl -)">
+            <ZoomOut size={12} style={{ verticalAlign: 'middle', marginRight: '4px' }} />Zoom −
+          </button>
+          <button className="key-chip" onClick={() => { haptics.tick(); onSendKey('zoom_in'); }} title="Zoom in (Ctrl +)">
+            <ZoomIn size={12} style={{ verticalAlign: 'middle', marginRight: '4px' }} />Zoom +
+          </button>
+          <button className="key-chip" onClick={() => { haptics.tick(); onSendKey('zoom_reset'); }} title="Reset zoom (Ctrl 0)">
+            <RotateCcw size={12} style={{ verticalAlign: 'middle', marginRight: '4px' }} />100%
+          </button>
+          <button className="key-chip" onClick={() => { haptics.heavy(); onSendKey('win_shift_s'); }} title="Snipping overlay (Win+Shift+S)">
+            <Camera size={12} style={{ verticalAlign: 'middle', marginRight: '4px' }} />Snip
+          </button>
+          <button className="key-chip" onClick={() => { haptics.heavy(); onSendKey('print'); }} title="Full screen (PrtSc)">
+            <Monitor size={12} style={{ verticalAlign: 'middle', marginRight: '4px' }} />PrtSc
+          </button>
+        </div>
       </div>
 
       {/* Paste Long Text Card */}
       <div className="control-card">
         <div className="control-card-title">
-          <Clipboard size={15} />
-          <span>Send Full Text or URL</span>
+          <Send size={15} />
+          <span>Send Text / URL</span>
+        </div>
+        <div className="card-hint">
+          Types the whole message on the PC at once — much faster than live typing for long text.
         </div>
 
         <form onSubmit={handleBulkSubmit} style={{ display: 'flex', gap: '8px' }}>
           <input
             type="text"
             className="input-field"
-            placeholder="Paste or type complete message..."
+            placeholder="Paste or type complete text..."
             value={bulkText}
             onChange={(e) => setBulkText(e.target.value)}
             autoCapitalize="none"
@@ -274,10 +401,19 @@ export const QuickControls: React.FC<QuickControlsProps> = ({
             autoComplete="off"
             spellCheck={false}
           />
-          <button type="submit" className="icon-button" style={{ width: '42px', flexShrink: 0 }}>
+          <button type="submit" className="icon-button" style={{ width: '42px', flexShrink: 0 }} title="Send to PC">
             <Send size={15} />
           </button>
         </form>
+
+        <button
+          className={`key-chip ${bulkEnter ? 'active' : ''}`}
+          onClick={() => { setBulkEnter(!bulkEnter); haptics.tick(); }}
+          title="After sending, also press Enter on the PC (opens URLs)"
+        >
+          <CornerDownLeft size={12} style={{ verticalAlign: 'middle', marginRight: '4px' }} />
+          Press Enter after sending {bulkEnter ? 'ON' : 'OFF'}
+        </button>
       </div>
 
       {/* Audio Volume Card */}
@@ -366,6 +502,93 @@ export const QuickControls: React.FC<QuickControlsProps> = ({
             title="Next Track"
           >
             <SkipForward size={18} />
+          </button>
+        </div>
+      </div>
+
+      {/* Power Card (confirm-guarded) */}
+      <div className="control-card">
+        <div className="control-card-title">
+          <Power size={15} />
+          <span>Power</span>
+        </div>
+        <div className="card-hint">
+          Second tap within 3 seconds confirms.
+        </div>
+        <div className="power-row">
+          <button
+            className={`tool-btn ${confirmPower === 'lock' ? 'active confirm' : ''}`}
+            onClick={() => handlePowerTap('lock')}
+            onMouseDown={(e) => e.preventDefault()}
+            title={confirmPower === 'lock' ? 'Tap again to LOCK the PC now' : 'Lock the PC screen'}
+          >
+            <Lock size={16} />
+            <span>{confirmPower === 'lock' ? 'Tap again to lock' : 'Lock'}</span>
+          </button>
+          <button
+            className={`tool-btn ${confirmPower === 'sleep' ? 'active confirm' : ''}`}
+            onClick={() => handlePowerTap('sleep')}
+            onMouseDown={(e) => e.preventDefault()}
+            title={confirmPower === 'sleep' ? 'Tap again to SUSPEND the PC now' : 'Put the PC to sleep'}
+          >
+            <Moon size={16} />
+            <span>{confirmPower === 'sleep' ? 'Tap again to sleep' : 'Sleep'}</span>
+          </button>
+        </div>
+      </div>
+
+      {/* PC Clipboard Card */}
+      <div className="control-card">
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div className="control-card-title">
+            <Clipboard size={15} />
+            <span>PC Clipboard</span>
+          </div>
+          <button
+            className="icon-button"
+            style={{ width: '30px', height: '30px' }}
+            onClick={(e) => { e.stopPropagation(); onRequestClipboard(); haptics.tick(); }}
+            title="Read the PC clipboard"
+            disabled={clipboardLoading}
+          >
+            <RefreshCw size={14} className={clipboardLoading ? 'spin' : ''} />
+          </button>
+        </div>
+
+        <div className="clipboard-view">
+          {clipboardLoading
+            ? 'Reading PC clipboard…'
+            : serverClipboard
+              ? serverClipboard.slice(0, 400)
+              : 'Empty (or unreadable). Copy something on the PC, then tap refresh.'}
+        </div>
+
+        <div className="key-toolbar" onClick={(e) => e.stopPropagation()} onMouseDown={(e) => e.preventDefault()}>
+          <button
+            className={`key-chip ${serverClipboard ? '' : 'dimmed'}`}
+            disabled={clipboardLoading}
+            onClick={() => { haptics.click(); onSendKey('ctrl_v'); }}
+            title="Paste the clipboard content on the PC (Ctrl+V)"
+          >
+            <Clipboard size={12} style={{ verticalAlign: 'middle', marginRight: '4px' }} />Paste on PC
+          </button>
+          <button
+            className={`key-chip ${serverClipboard ? '' : 'dimmed'}`}
+            onClick={() => {
+              if (serverClipboard) {
+                navigator.clipboard?.writeText(serverClipboard).then(() => haptics.click());
+              }
+            }}
+            title="Save this text to the phone's clipboard"
+          >
+            <Copy size={12} style={{ verticalAlign: 'middle', marginRight: '4px' }} />Copy to phone
+          </button>
+          <button
+            className={`key-chip ${serverClipboard ? '' : 'dimmed'}`}
+            onClick={() => { if (serverClipboard) { haptics.click(); onSendText(serverClipboard); } }}
+            title="Type the clipboard text out (works where Ctrl+V is blocked)"
+          >
+            <Send size={12} style={{ verticalAlign: 'middle', marginRight: '4px' }} />Type it
           </button>
         </div>
       </div>

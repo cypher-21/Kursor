@@ -1,6 +1,9 @@
+import re
 import sys
 import time
 from .base import InputBackend
+
+_FN_RE = re.compile(r'^(f(?:[1-9]|1[0-2])|print)$')
 
 try:
     from pynput.mouse import Controller as MouseController, Button
@@ -141,6 +144,34 @@ class X11Backend(InputBackend):
                 self.keyboard.press(Key.f4)
                 self.keyboard.release(Key.f4)
             return
+        elif norm in ("ctrl_plus", "ctrl+plus", "zoom_in"):
+            with self.keyboard.pressed(Key.ctrl):
+                self.keyboard.press('+')
+                self.keyboard.release('+')
+            return
+        elif norm in ("ctrl_minus", "ctrl+minus", "zoom_out"):
+            with self.keyboard.pressed(Key.ctrl):
+                self.keyboard.press('-')
+                self.keyboard.release('-')
+            return
+        elif norm in ("ctrl_0", "ctrl+0", "zoom_reset"):
+            with self.keyboard.pressed(Key.ctrl):
+                self.keyboard.press('0')
+                self.keyboard.release('0')
+            return
+        elif norm in ("win_l", "win+l"):
+            # NOTE: simulated Win+L is blocked by Windows UIPI; Windows users
+            # should use the dedicated Lock (LockWorkStation) power action,
+            # but keep the combo working for real keyboards / other uses.
+            with self.keyboard.pressed(Key.cmd):
+                self.keyboard.press('l')
+                self.keyboard.release('l')
+            return
+        elif norm in ("win_shift_s", "win+shift+s"):
+            with self.keyboard.pressed(Key.cmd), self.keyboard.pressed(Key.shift):
+                self.keyboard.press('s')
+                self.keyboard.release('s')
+            return
 
         key_map = {
             "page_down": Key.page_down,
@@ -185,6 +216,13 @@ class X11Backend(InputBackend):
             self.keyboard.press(norm)
             time.sleep(0.015)
             self.keyboard.release(norm)
+        elif _FN_RE.fullmatch(norm):
+            # F1..F12 (and PrtSc via pynput's Key.print_screen)
+            special = getattr(Key, norm, Key.print_screen if norm == "print" else None)
+            if special:
+                self.keyboard.press(special)
+                time.sleep(0.015)
+                self.keyboard.release(special)
 
     def type_text(self, text: str) -> None:
         if self.is_windows:

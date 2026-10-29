@@ -1,8 +1,9 @@
 import sys
+import ctypes
 import shutil
 import subprocess
 from pathlib import Path
-from typing import Dict, Any
+from typing import Dict, Any, Optional
 
 try:
     from pynput.keyboard import Controller as KeyboardController, Key
@@ -13,7 +14,7 @@ except ImportError:
 class SystemControls:
     """Manages host system settings (Audio, Media playback, DND, Battery) on Linux & Windows."""
 
-    def __init__(self):
+    def __init__(self, input_backend=None):
         self.is_windows = sys.platform == "win32"
         self.has_pactl = shutil.which("pactl") is not None
         self.has_pamixer = shutil.which("pamixer") is not None
@@ -21,6 +22,23 @@ class SystemControls:
         self.has_dunstctl = shutil.which("dunstctl") is not None
         self.dnd_active = False
         self._kb = KeyboardController() if _HAS_PYNPUT else None
+        # Optional: the same virtual input device used for cursor/keys. When
+        # playerctl is unavailable (or fails), media commands are injected as
+        # real hardware media keys (KEY_PLAYPAUSE etc.) which GNOME/KDE/Windows
+        # forward to the active player - no external dependency needed.
+        self._input_backend = input_backend
+
+    def _media_key(self, key: str) -> None:
+        """Last-resort media control via the virtual input device."""
+        be = self._input_backend
+        if be is None:
+            print(f"[SystemControls] No media route available for '{key}' "
+                  "(install playerctl for precise per-app control)")
+            return
+        try:
+            be.press_key(key)
+        except Exception as exc:
+            print(f"[SystemControls] Media-key fallback failed for '{key}': {exc}")
 
     def volume_up(self, step: int = 5) -> None:
         if self.is_windows and self._kb:
@@ -64,22 +82,121 @@ class SystemControls:
         if self.is_windows and self._kb:
             self._kb.press(Key.media_play_pause)
             self._kb.release(Key.media_play_pause)
-        elif self.has_playerctl:
-            subprocess.run(["playerctl", "play-pause"], capture_output=True)
+        elif self.has_playerctl and self._playerctl_ok("play-pause"):
+            pass  # succeeded; per-player MPRIS control
+        else:
+            self._media_key("play_pause")
 
     def media_next(self) -> None:
         if self.is_windows and self._kb:
             self._kb.press(Key.media_next)
             self._kb.release(Key.media_next)
-        elif self.has_playerctl:
-            subprocess.run(["playerctl", "next"], capture_output=True)
+        elif self.has_playerctl and self._playerctl_ok("next"):
+            pass
+        else:
+            self._media_key("next_track")
 
     def media_prev(self) -> None:
         if self.is_windows and self._kb:
             self._kb.press(Key.media_previous)
             self._kb.release(Key.media_previous)
-        elif self.has_playerctl:
-            subprocess.run(["playerctl", "previous"], capture_output=True)
+        elif self.has_playerctl and self._playerctl_ok("previous"):
+            pass
+        else:
+            self._media_key("prev_track")
+
+    def _playerctl_ok(self, command: str) -> bool:
+        """Run a playerctl command; return True only if it actually succeeded."""
+        try:
+            res = subprocess.run(
+                ["playerctl", "-a", command], capture_output=True, text=True, timeout=3
+            )
+            if res.returncode == 0:
+                return True
+            err = (res.stderr or res.stdout).strip()
+            if err:
+                print(f"[SystemControls] playerctl {command} failed: {err}")
+        except Exception as exc:
+            print(f"[SystemControls] playerctl {command} error: {exc}")
+        return False
+
+    # ------------------------------------------------------------------ #
+    # Power actions
+    # ------------------------------------------------------------------ #
+
+    def lock_screen(self) -> None:
+        if self.is_windows:
+            try:
+                ctypes.windll.user32.LockWorkStation()
+            except Exception as exc:
+                print(f"[SystemControls] LockWorkStation failed: {exc}")
+        elif shutil.which("loginctl"):
+            # Works on GNOME/KDE Wayland & X11 (logind session lock)
+            subprocess.run(["loginctl", "lock-session"], capture_output=True, timeout=5)
+        else:
+            # GNOME fallback via D-Bus
+            subprocess.run(
+                ["gdbus", "call", "--session",
+                 "--dest", "org.gnome.ScreenSaver",
+                 "--object-path", "/org/gnome/ScreenSaver",
+                 "--method", "org.gnome.ScreenSaver.Lock"],
+                capture_output=True, timeout=5,
+            )
+
+    def sleep(self) -> None:
+        """Put the machine to sleep (S3 suspend)."""
+        if self.is_windows:
+            subprocess.run(
+                ["rundll32.exe", "powrprof.dll,SetSuspendState", "0", "1", "0"],
+                capture_output=True, timeout=5,
+            )
+        else:
+            # polkit typically allows suspend for the active desktop session
+            subprocess.run(["systemctl", "suspend"], capture_output=True, timeout=5)
+
+    # ------------------------------------------------------------------ #
+    # Clipboard
+    # ------------------------------------------------------------------ #
+
+    def get_clipboard_text(self) -> Optional[str]:
+        """Read plain text from the PC clipboard (Wayland-first on Linux)."""
+        if self.is_windows:
+            try:
+                res = subprocess.run(
+                    ["powershell", "-NoProfile", "-Command",
+                     "Get-Clipboard -TextFormatType Text"],
+                    capture_output=True, text=True, timeout=4,
+                )
+                if res.returncode == 0:
+                    return res.stdout.rstrip("\r\n") or None
+            except Exception:
+                pass
+            return None
+
+        # Wayland (GNOME/KDE/Sway): wl-paste reads the real Wayland clipboard
+        if shutil.which("wl-paste"):
+            try:
+                res = subprocess.run(
+                    ["wl-paste", "--no-newline", "--type", "text/plain;charset=utf-8"],
+                    capture_output=True, text=True, timeout=3,
+                )
+                if res.returncode == 0:
+                    return res.stdout or None
+            except Exception:
+                pass
+
+        # X11 path (also works under Xwayland sessions) - see the probe lesson:
+        # xclip can daemonize & hang, so always run with a timeout.
+        for cmd in (["xclip", "-selection", "clipboard", "-o"],
+                    ["xsel", "--clipboard", "--output"]):
+            if shutil.which(cmd[0]):
+                try:
+                    res = subprocess.run(cmd, capture_output=True, text=True, timeout=3)
+                    if res.returncode == 0:
+                        return res.stdout or None
+                except Exception:
+                    pass
+        return None
 
     def toggle_dnd(self) -> bool:
         """Toggle Do Not Disturb (silence notifications)."""
