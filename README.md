@@ -23,21 +23,24 @@ An open-source desktop control system engineered for **Windows** (10/11) and **L
 
 - **Presentation Remote**:
   - Compact ergonomic **Next Slide** and **Previous Slide** buttons (PageDown / PageUp).
-  - Integrated **Mouse Touchpad**: Large dedicated touch area on the presenter screen allowing seamless mouse control and slide navigation simultaneously.
+  - Integrated **Mouse Touchpad**: Large dedicated touch area for cursor movement, clicks and text selection.
+  - **Tap, then tap-and-hold & sweep = click-and-drag** (select text, move windows — on the trackpad and presenter pad alike).
   - **Stopwatch Timer**: Clean countdown/presentation timer with start, pause, and reset.
   - **Quick Presentation Keys**: Start Slideshow (F5), Exit (Esc), Blank Screen (Black/White).
-  - **Air-Mouse & Laser Pointer**: Tilt-to-move pointer overlay using phone gyroscope sensors.
+  - **Pointer Pad**: The presenter pad always moves the mouse cursor (click / tap-drag included), so you can point at on-screen content mid-presentation.
 
 - **System Controls & Live Typing**:
   - Master volume slider with instant mute toggle.
   - Media player deck: Previous, Play/Pause, Next track.
+  - **Live system state sync**: volume, mute, playback and DND states are read from the host and pushed to every connected remote, so all phones show the real values (Linux `pamixer`/`pactl`, Windows mixer).
+  - **Optional PIN pairing**: set `pin_required: true` and a `pin` in `~/.config/kursor/config.json` to block all touchpad input until the phone enters the PIN (5 wrong attempts lock the connection out).
   - Do Not Disturb (DND) notification toggle.
-  - **Live Keyboard Input**: Keystrokes, backspaces, and enters transmit immediately to the active PC window with exact casing and Unicode support (bypasses host Caps Lock).
+  - **Live Keyboard Input**: Keystrokes, backspaces, and enters transmit immediately to the active PC window with exact casing (bypasses host Caps Lock), full punctuation support on Windows & Linux, and Unicode support via the Windows Win32 driver.
   - Virtual PC Modifier Keys: Esc, Tab, Ctrl, Alt, Win, Del, navigation arrows, and common shortcuts (Ctrl+C, Ctrl+V, Ctrl+Z, Ctrl+A, Alt+F4).
 
 - **High-Performance Desktop Engines**:
   - **Windows**: Native Win32 API (`ctypes.windll.user32`) input driver with sub-notch wheel delta accumulation for lag-free cursor tracking.
-  - **Linux**: Direct kernel-level `/dev/uinput` virtual device driver, operating natively across Wayland (GNOME, KDE Plasma, Sway, Hyprland) and X11 without root privileges at runtime. Fallback drivers for `ydotool` and `pynput` included.
+  - **Linux**: Direct kernel-level `/dev/uinput` virtual device driver, operating natively across Wayland (GNOME, KDE Plasma, Sway, Hyprland) and X11 without root privileges at runtime. Includes an automatic **write-only uinput fallback driver** (pure Python) for distributions whose udev rules grant only group-write access (e.g. `MODE="0220"`) — no root or udev changes needed. Fallback drivers for `ydotool` and `pynput` included.
 
 - **Zero-Config LAN Pairing**:
   - Automatic local network discovery via UDP broadcast beacon.
@@ -86,6 +89,17 @@ chmod +x setup-uinput.sh
   ./start-linux.sh --cli
   ```
 
+> [!TIP]
+> **Works on Wayland without root.** The Linux engine now ships a *raw write-only*
+> uinput driver that only needs group-write access to `/dev/uinput` (the default on
+> most distros). If udev denies even that, run `setup-uinput.sh` (step 1 above) to
+> install the `0660` udev rule. Kursor prints which driver is active at startup:
+> - `[UInputBackend] ... (evdev)` — standard driver
+> - `[UInputBackend] ... (raw write-only mode)` — permission-safe fallback
+>
+> `python-evdev` itself is optional now (installed automatically via `requirements.txt`),
+> but the distro package `python3-evdev` also works.
+
 ---
 
 ### Connecting Your Phone (Android & iOS)
@@ -107,7 +121,7 @@ mouse/
 ├── android/                         # Web Remote Client (React 19, TypeScript, Vite, PWA)
 │   ├── src/
 │   │   ├── components/              # Trackpad, Presenter, QuickControls, Header, Modals
-│   │   ├── hooks/                   # useSocket, useHaptics, useOrientation
+│   │   ├── hooks/                   # useSocket, useHaptics
 │   │   └── index.css                # Dark theme design system & responsive layout
 │   ├── public/                      # App icons, manifest.json, sw.js
 │   ├── dist/                        # Production compiled web assets
@@ -118,15 +132,14 @@ mouse/
 │   │   ├── server.py                # WebSocket server & dynamic sensitivity engine
 │   │   ├── gui.py                   # Desktop pairing GUI with live Quick Settings
 │   │   ├── discovery.py             # UDP beacon & auto-discovery responder
-│   │   ├── input_engine/            # Win32, kernel uinput (Wayland), ydotool, X11
+│   │   ├── input_engine/            # Win32, kernel uinput + raw write-only fallback, ydotool, X11
 │   │   ├── system_controls.py       # Volume, media, and notification controls
-│   │   ├── laser_overlay.py         # On-screen transparent laser pointer / spotlight
 │   │   └── config.py                # Configuration and settings persistence
 │   ├── setup-uinput.sh              # Linux kernel uinput permissions setup
 │   ├── kursor.service               # Linux systemd service unit
 │   ├── install.sh                   # Linux automated installer
 │   ├── start-linux.sh               # Linux launcher helper
-│   ├── requirements.txt             # Python dependencies
+│   ├── requirements.txt             # Python dependencies (incl. python-evdev on Linux)
 │   └── main.py                      # Desktop application entrypoint
 │
 ├── docs/
@@ -154,6 +167,8 @@ Settings are automatically saved to `~/.config/kursor/config.json`:
 | `invert_scroll` | `false` | Traditional vs. Natural scrolling direction |
 | `port` | `8765` | WebSocket and HTTP listening port |
 | `udp_discovery_port` | `8766` | UDP LAN beacon port |
+| `pin_required` | `false` | Reject all input until the phone enters your pairing PIN |
+| `pin` | `""` | The pairing PIN code (used when `pin_required` is `true`) |
 | `preferred_backend` | `"auto"` | Input engine (`auto`, `uinput`, `ydotool`, `x11`) |
 
 Sliders in the Desktop GUI and Mobile Web Remote adjust these parameters in real time without restarting the server.

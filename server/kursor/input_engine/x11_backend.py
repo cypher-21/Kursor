@@ -31,10 +31,19 @@ class X11Backend(InputBackend):
         self.is_windows = sys.platform == "win32"
         if not HAVE_PYNPUT and not self.is_windows:
             raise RuntimeError("pynput is not installed. Install via: pip install pynput")
+        self.wayland = (not self.is_windows) and bool(os.environ.get("WAYLAND_DISPLAY"))
+        if self.wayland:
+            print(
+                "[X11Backend] WARNING: Running under Wayland. pynput cannot reliably move\n"
+                "            the cursor on Wayland - use the uinput backend instead:\n"
+                "            'setup-uinput.sh' (udev rule) and set preferred_backend='uinput'\n"
+                "            in ~/.config/kursor/config.json"
+            )
         self.mouse = MouseController() if HAVE_PYNPUT else None
         self.keyboard = KeyboardController() if HAVE_PYNPUT else None
         self.remainder_scroll_y = 0.0
         self.remainder_scroll_x = 0.0
+        self._move_warned = False
         platform_name = "Windows Win32" if self.is_windows else "X11 / pynput"
         print(f"[InputBackend] Initialized {platform_name} input driver")
 
@@ -44,8 +53,12 @@ class X11Backend(InputBackend):
         elif self.mouse:
             try:
                 self.mouse.move(int(dx), int(dy))
-            except Exception:
-                pass
+            except Exception as exc:
+                if not self._move_warned:
+                    self._move_warned = True
+                    print(f"[X11Backend] Cursor movement failing ({exc}). "
+                          "On Wayland use the uinput backend or ydotool.")
+                    raise
 
     def click(self, button: str = "left", state: str = "click") -> None:
         if self.is_windows:

@@ -62,7 +62,7 @@ android/src/
 ├── components/
 │   ├── Header.tsx            # Connection pill, latency, battery, fullscreen, preferences
 │   ├── Trackpad.tsx          # Multi-touch surface, scroll ribbon, left/middle/right buttons
-│   ├── Presenter.tsx         # Slide navigation buttons, touchpad, stopwatch timer, laser
+│   ├── Presenter.tsx         # Slide navigation buttons, pointer pad, stopwatch timer, quick keys
 │   ├── QuickControls.tsx     # Volume slider, media deck, DND, live keyboard input
 │   ├── SettingsModal.tsx     # Cursor & scroll sensitivity, natural scroll, haptics
 │   └── ConnectionModal.tsx   # Manual IP/port connection modal

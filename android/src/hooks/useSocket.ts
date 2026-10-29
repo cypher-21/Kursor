@@ -6,10 +6,20 @@ export interface SystemStatus {
   dnd: boolean;
   battery: number | null;
   charging: boolean;
+  /** Actual playback state reported by the receiver (when detectable) */
+  playing?: boolean;
 }
+
+const MAX_RECONNECT_DELAY_MS = 10_000;
 
 export interface UseSocketReturn {
   connected: boolean;
+  /** True while an automatic reconnect attempt is pending */
+  reconnecting: boolean;
+  /** True when the receiver requires a PIN that the remote cannot provide yet */
+  needsAuth: boolean;
+  /** Attempts remaining after the last failed PIN entry (null until a failure) */
+  authError: number | null;
   latency: number | null;
   serverName: string;
   systemStatus: SystemStatus;
@@ -17,12 +27,12 @@ export interface UseSocketReturn {
   port: number;
   connect: (customHost?: string, customPort?: number) => void;
   disconnect: () => void;
+  sendAuth: (pin: string) => void;
   sendMove: (dx: number, dy: number) => void;
   sendClick: (button?: 'left' | 'right' | 'middle', state?: 'click' | 'down' | 'up') => void;
   sendScroll: (dx: number, dy: number) => void;
   sendGesture: (action: string) => void;
   sendPresenter: (action: 'next' | 'prev' | 'start' | 'exit' | 'black' | 'white') => void;
-  sendLaser: (active: boolean, x?: number, y?: number, mode?: string) => void;
   sendMedia: (action: 'vol_up' | 'vol_down' | 'mute' | 'set_vol' | 'play_pause' | 'next' | 'prev', value?: number) => void;
   sendText: (content: string) => void;
   sendKey: (key: string) => void;
@@ -34,6 +44,9 @@ export interface UseSocketReturn {
 
 export function useSocket(): UseSocketReturn {
   const [connected, setConnected] = useState(false);
+  const [reconnecting, setReconnecting] = useState(false);
+  const [needsAuth, setNeedsAuth] = useState(false);
+  const [authError, setAuthError] = useState<number | null>(null);
   const [latency, setLatency] = useState<number | null>(null);
   const [serverName, setServerName] = useState('Kursor');
   const [systemStatus, setSystemStatus] = useState<SystemStatus>({
@@ -54,7 +67,7 @@ export function useSocket(): UseSocketReturn {
         return host;
       }
     }
-    return '192.168.1.100';
+    return '';
   };
 
   const getInitialPort = () => {
@@ -75,6 +88,12 @@ export function useSocket(): UseSocketReturn {
   const wsRef = useRef<WebSocket | null>(null);
   const pingIntervalRef = useRef<any>(null);
   const reconnectTimeoutRef = useRef<any>(null);
+  const hostRef = useRef(host);
+  const portRef = useRef(port);
+  // Guards against reconnect loops after an intentional disconnect
+  const manualCloseRef = useRef(false);
+  const retractAttemptRef = useRef(0);
+  const authSentRef = useRef(false);
 
   const sendRaw = useCallback((obj: any) => {
     if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
@@ -82,30 +101,58 @@ export function useSocket(): UseSocketReturn {
     }
   }, []);
 
-  const connect = useCallback((targetHost?: string, targetPort?: number) => {
-    const h = targetHost || host;
-    const p = targetPort || port;
+  const scheduleReconnect = useCallback(() => {
+    if (manualCloseRef.current) return;
+    setReconnecting(true);
+    const attempt = retractAttemptRef.current;
+    retractAttemptRef.current = attempt + 1;
+    const delay = Math.min(1000 * Math.pow(2, Math.min(attempt, 4)), MAX_RECONNECT_DELAY_MS);
+    console.log(`[Kursor] Reconnecting in ${delay}ms (attempt ${attempt + 1})...`);
+    if (reconnectTimeoutRef.current) clearTimeout(reconnectTimeoutRef.current);
+    reconnectTimeoutRef.current = setTimeout(() => {
+      connect(hostRef.current, portRef.current);
+    }, delay);
+  }, []);
 
-    if (targetHost) setHost(targetHost);
-    if (targetPort) setPort(targetPort);
+  const connect = useCallback((customHost?: string, customPort?: number) => {
+    const h = (customHost !== undefined ? customHost : hostRef.current) || '';
+    const p = customPort ?? portRef.current;
+
+    if (customHost !== undefined) hostRef.current = customHost;
+    hostRef.current = h;
+    portRef.current = p;
 
     localStorage.setItem('mousely_host', h);
     localStorage.setItem('mousely_port', p.toString());
+    if (h) setHost(h);
+    setPort(p);
 
     if (wsRef.current) {
+      manualCloseRef.current = true;
       wsRef.current.close();
+    }
+    manualCloseRef.current = false;
+
+    if (!h) {
+      console.warn('[Kursor] No host to connect to.');
+      return;
     }
 
     const wsUrl = `ws://${h}:${p}/ws`;
-    console.log(`[Mousely] Connecting to ${wsUrl}...`);
+    console.log(`[Kursor] Connecting to ${wsUrl}...`);
 
     try {
       const ws = new WebSocket(wsUrl);
       wsRef.current = ws;
 
       ws.onopen = () => {
-        console.log('[Mousely] Connected to receiver!');
+        console.log('[Kursor] Connected to receiver!');
         setConnected(true);
+        setReconnecting(false);
+        retractAttemptRef.current = 0;
+        authSentRef.current = false;
+        setNeedsAuth(false);
+        setAuthError(null);
 
         // Start ping loop for latency tracking
         if (pingIntervalRef.current) clearInterval(pingIntervalRef.current);
@@ -125,37 +172,89 @@ export function useSocket(): UseSocketReturn {
           } else if (data.type === 'init') {
             if (data.server_name) setServerName(data.server_name);
             if (data.status) setSystemStatus(data.status);
+            if (data.auth_required) {
+              const savedPin = localStorage.getItem('kursor_pin');
+              if (savedPin && !authSentRef.current) {
+                // Silent auto-auth with the remembered PIN
+                authSentRef.current = true;
+                sendRaw({ type: 'auth', pin: savedPin });
+              } else {
+                setNeedsAuth(true);
+              }
+            }
+          } else if (data.type === 'auth_ok') {
+            // Remember the working PIN (from the silent attempt or the modal)
+            const savedPin = localStorage.getItem('kursor_pin');
+            const lastTyped = localStorage.getItem('kursor_pin_last');
+            if (!savedPin && lastTyped) localStorage.setItem('kursor_pin', lastTyped);
+            localStorage.removeItem('kursor_pin_last');
+            setNeedsAuth(false);
+            setAuthError(null);
+            if (data.server_name) setServerName(data.server_name);
+            if (data.status) setSystemStatus(data.status);
+          } else if (data.type === 'status') {
+            // Live state pushed by the receiver after media/DND changes
+            if (data.status) setSystemStatus(data.status);
+          } else if (data.type === 'auth_error') {
+            setAuthError(data.attempts_remaining ?? null);
+            setNeedsAuth(true);
+            localStorage.removeItem('kursor_pin_last');
+            localStorage.removeItem('kursor_pin');
+            authSentRef.current = false;
+          } else if (data.type === 'auth_denied') {
+            setInputsLocked();
+          } else if (data.type === 'auth_required') {
+            // Server nudged: we sent input without completing auth
+            if (!authSentRef.current) {
+              const savedPin = localStorage.getItem('kursor_pin');
+              if (savedPin) {
+                authSentRef.current = true;
+                sendRaw({ type: 'auth', pin: savedPin });
+              } else {
+                setNeedsAuth(true);
+              }
+            }
           } else if (data.type === 'dnd_state') {
             setSystemStatus((prev) => ({ ...prev, dnd: data.active }));
           }
         } catch (err) {
-          console.error('[Mousely] Message parse error:', err);
+          console.error('[Kursor] Message parse error:', err);
         }
       };
 
-      ws.onclose = () => {
-        console.log('[Mousely] WebSocket closed.');
-        setConnected(false);
-        setLatency(null);
-        if (pingIntervalRef.current) clearInterval(pingIntervalRef.current);
+      ws.onclose = (event) => {
+        console.log('[Kursor] WebSocket closed.', event.code);
+        if (!manualCloseRef.current) {
+          setConnected(false);
+          setLatency(null);
+          if (pingIntervalRef.current) clearInterval(pingIntervalRef.current);
+          scheduleReconnect();
+        }
       };
 
       ws.onerror = (err) => {
-        console.warn('[Mousely] WebSocket error:', err);
+        console.warn('[Kursor] WebSocket error:', err);
       };
     } catch (e) {
-      console.error('[Mousely] Failed to open WebSocket:', e);
+      console.error('[Kursor] Failed to open WebSocket:', e);
+      scheduleReconnect();
     }
-  }, [host, port]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [scheduleReconnect, sendRaw]);
+
+  const setInputsLocked = () => setNeedsAuth(true);
 
   const disconnect = useCallback(() => {
+    manualCloseRef.current = true;
     if (reconnectTimeoutRef.current) clearTimeout(reconnectTimeoutRef.current);
+    retractAttemptRef.current = 0;
     if (pingIntervalRef.current) clearInterval(pingIntervalRef.current);
     if (wsRef.current) {
       wsRef.current.close();
       wsRef.current = null;
     }
     setConnected(false);
+    setReconnecting(false);
   }, []);
 
   useEffect(() => {
@@ -164,6 +263,11 @@ export function useSocket(): UseSocketReturn {
       disconnect();
     };
   }, []);
+
+  const sendAuth = useCallback((pin: string) => {
+    localStorage.setItem('kursor_pin_last', pin);
+    sendRaw({ type: 'auth', pin });
+  }, [sendRaw]);
 
   const sendMove = useCallback((dx: number, dy: number) => {
     sendRaw({ type: 'move', dx, dy });
@@ -183,10 +287,6 @@ export function useSocket(): UseSocketReturn {
 
   const sendPresenter = useCallback((action: 'next' | 'prev' | 'start' | 'exit' | 'black' | 'white') => {
     sendRaw({ type: 'presenter', action });
-  }, [sendRaw]);
-
-  const sendLaser = useCallback((active: boolean, x?: number, y?: number, mode: string = 'laser') => {
-    sendRaw({ type: 'laser', active, x, y, mode });
   }, [sendRaw]);
 
   const sendMedia = useCallback((action: 'vol_up' | 'vol_down' | 'mute' | 'set_vol' | 'play_pause' | 'next' | 'prev', value?: number) => {
@@ -219,6 +319,9 @@ export function useSocket(): UseSocketReturn {
 
   return {
     connected,
+    reconnecting,
+    needsAuth,
+    authError,
     latency,
     serverName,
     systemStatus,
@@ -226,12 +329,12 @@ export function useSocket(): UseSocketReturn {
     port,
     connect,
     disconnect,
+    sendAuth,
     sendMove,
     sendClick,
     sendScroll,
     sendGesture,
     sendPresenter,
-    sendLaser,
     sendMedia,
     sendText,
     sendKey,

@@ -7,6 +7,7 @@ interface HeaderProps {
   serverName: string;
   latency: number | null;
   status: SystemStatus;
+  reconnecting?: boolean;
   onOpenConnect: () => void;
   onOpenSettings: () => void;
   isFullscreen?: boolean;
@@ -18,6 +19,7 @@ export const Header: React.FC<HeaderProps> = ({
   serverName,
   latency,
   status,
+  reconnecting,
   onOpenConnect,
   onOpenSettings,
   isFullscreen,
@@ -41,10 +43,10 @@ export const Header: React.FC<HeaderProps> = ({
           onClick={onOpenConnect}
           className={`status-badge ${connected ? 'connected' : 'disconnected'}`}
           style={{ cursor: 'pointer' }}
-          title={connected ? `Connected to ${serverName}` : 'Disconnected. Tap to connect'}
+          title={connected ? `Connected to ${serverName}` : reconnecting ? 'Reconnecting to receiver...' : 'Disconnected. Tap to connect'}
         >
           <span className="pulse-dot" />
-          <span>{connected ? 'Online' : 'Offline'}</span>
+          <span>{connected ? 'Online' : reconnecting ? 'Retry…' : 'Offline'}</span>
           {connected ? <Wifi size={12} /> : <WifiOff size={12} />}
         </button>
 

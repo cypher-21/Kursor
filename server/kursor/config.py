@@ -10,9 +10,6 @@ DEFAULT_CONFIG = {
     "scroll_sensitivity": 1.0,
     "invert_scroll": False,
     "preferred_backend": "auto",  # 'auto', 'uinput', 'ydotool', 'x11', 'pynput'
-    "laser_color": "#ff2a5f",
-    "laser_size": 18,
-    "spotlight_radius": 120,
     "pin_required": False,
     "pin": "",
     "name": "Kursor"

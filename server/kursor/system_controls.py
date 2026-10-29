@@ -110,6 +110,43 @@ class SystemControls:
                 is_muted = res_m.stdout.strip() == "true"
             except Exception:
                 pass
+        elif self.has_pactl:
+            # Parse "Volume: front-left: 49152 /  75% / -7.50 dB, ..."
+            try:
+                res = subprocess.run(
+                    ["pactl", "get-sink-volume", "@DEFAULT_SINK@"], capture_output=True, text=True
+                )
+                for token in res.stdout.split():
+                    if token.endswith("%"):
+                        vol = int(token[:-1])
+                        break
+                res_m = subprocess.run(
+                    ["pactl", "get-sink-mute", "@DEFAULT_SINK@"], capture_output=True, text=True
+                )
+                is_muted = res_m.stdout.strip().lower() == "mute: yes"
+            except Exception:
+                pass
+
+        # Reflect the real DND state instead of only tracking it locally
+        dnd_active = self.dnd_active
+        if self.has_dunstctl:
+            try:
+                res = subprocess.run(["dunstctl", "get-paused"], capture_output=True, text=True)
+                dnd_active = res.stdout.strip().lower() == "true"
+                self.dnd_active = dnd_active
+            except Exception:
+                pass
+        elif sys.platform != "win32" and shutil.which("gsettings") is not None:
+            try:
+                res = subprocess.run(
+                    ["gsettings", "get", "org.gnome.desktop.notifications", "show-banners"],
+                    capture_output=True, text=True
+                )
+                # show-banners false == notifications silenced == DND on
+                dnd_active = res.stdout.strip().lower() == "false"
+                self.dnd_active = dnd_active
+            except Exception:
+                pass
 
         # Check laptop battery (Linux & Windows)
         battery_pct = None
@@ -147,10 +184,22 @@ class SystemControls:
                 except Exception:
                     pass
 
+        # Actual playback state, when the desktop exposes it
+        playing = None
+        if self.has_playerctl and sys.platform != "win32":
+            try:
+                res = subprocess.run(["playerctl", "-a", "status"], capture_output=True, text=True)
+                first = res.stdout.strip().splitlines()
+                if first:
+                    playing = first[0].strip().lower() == "playing"
+            except Exception:
+                pass
+
         return {
             "volume": vol,
             "muted": is_muted,
-            "dnd": self.dnd_active,
+            "dnd": dnd_active,
+            "playing": playing,
             "battery": battery_pct,
             "charging": is_charging
         }

@@ -152,18 +152,15 @@ Actions:
 - `"black"`: Blank black screen (B)
 - `"white"`: White screen (W)
 
-### I. Digital Laser Pointer & Spotlight (Client -> Server)
+### I. Presenter Quick Keys (Client -> Server)
 ```json
-{
-  "type": "laser",
-  "active": true,
-  "x": 960,
-  "y": 540,
-  "mode": "laser"
-}
+{ "type": "presenter", "action": "start" }
 ```
-- `mode`: `"laser"` (pointer reticle) or `"spotlight"` (presentation spotlight circle)
-- `x`, `y`: Screen coordinate targets
+- `action`: `"start"` (F5), `"exit"` (Esc), `"black"` (B), `"white"` (W),
+  `"next"` (PageDown), `"prev"` (PageUp)
+- NOTE: the legacy `"laser"` message (on-screen laser dot / spotlight overlay)
+  was removed; the server now simply ignores it, unknown message types follow
+  the standard unknown-type warning path.
 
 ### J. Media & System Controls (Client -> Server)
 ```json
@@ -178,12 +175,40 @@ Actions:
 - `"set_vol"`: Set specific volume (`value: 0-100`)
 - `"play_pause"`, `"next"`, `"prev"`: Control media player
 
+After every state-changing action, the server reads fresh system state and
+broadcasts it to **all** connected clients as a `status` message (see section O),
+so every phone UI stays in sync.
+
 ### K. Silence Notifications / DND (Client -> Server)
 ```json
 {
   "type": "dnd"
 }
 ```
+The server replies with a `dnd_state` message and broadcasts the full `status`.
+
+### K1. PIN Pairing Authenticate (Client -> Server)
+
+If `pin_required: true` and `pin: "<code>"` are set in `~/.config/kursor/config.json`,
+the server rejects all input commands until the client authenticates:
+
+```json
+{
+  "type": "auth",
+  "pin": "1234"
+}
+```
+Responses (Server -> Client):
+- `{"type": "auth_ok", "server_name": ..., "status": ..., "settings": ...}` — input unlocked
+- `{"type": "auth_error", "attempts_remaining": 3}` — wrong PIN (max 5 attempts)
+- `{"type": "auth_denied", "message": "Too many failed attempts."}` — connection is closed
+- `{"type": "auth_required"}` — sent when a non-auth command arrives before authenticating
+
+While locked, only `auth` and `ping` messages are processed. The `init`
+message includes `"auth_required": true/false` so clients can prompt for a
+PIN immediately; the full system `status` is only sent after successful
+authentication (unless auth is disabled). A remembered PIN can be resent
+automatically by the web remote (stored in `localStorage.kursor_pin`).
 
 ### L. Bulk Text Transmission (Client -> Server)
 ```json
@@ -209,3 +234,24 @@ Server replies:
 }
 ```
 Client calculates round-trip time (`Date.now() - data.t`) to display real-time connection latency.
+
+### N. System State Push (Server -> Client)
+Sent after every `media` / `dnd` action (to all clients) so UIs stay in sync:
+```json
+{
+  "type": "status",
+  "status": {
+    "volume": 75,
+    "muted": false,
+    "dnd": false,
+    "playing": null,
+    "battery": 100,
+    "charging": false
+  }
+}
+```
+Notes:
+- `volume` / `muted`: read live from the audio server (`pamixer`, or `pactl` fallback) on Linux; the Win32 mixer on Windows
+- `playing`: `true` / `false` when the host can detect playback state (Linux `playerctl`), otherwise `null`
+- `dnd`: real notification state read back from the system (`dunstctl` / GNOME `gsettings`), not just the last toggle
+- `battery` / `charging`: from `/sys/class/power_supply` (Linux) or `GetSystemPowerStatus` (Windows)

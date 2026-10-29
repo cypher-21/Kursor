@@ -36,6 +36,8 @@ class KursorGUI:
         self.root.title("Kursor Desktop")
         self.root.geometry("460x650")
         self.root.resizable(False, False)
+        # Debounce disk writes while the Quick Settings sliders are dragged
+        self._save_after_id = None
 
         # Style configuration - Dark Theme matching Mousely aesthetic
         bg_color = "#0e0e12"
@@ -177,16 +179,26 @@ class KursorGUI:
     def _on_sens_change(self, val):
         val_f = float(val)
         self.config["mouse_sensitivity"] = val_f
-        save_config(self.config)
+        self._debounced_save()
         if self.server:
             self.server.set_mouse_sensitivity(val_f)
 
     def _on_scroll_sens_change(self, val):
         val_f = float(val)
         self.config["scroll_sensitivity"] = val_f
-        save_config(self.config)
+        self._debounced_save()
         if self.server:
             self.server.set_scroll_sensitivity(val_f)
+
+    def _debounced_save(self):
+        """Persist settings 500ms after the last slider movement (not every tick)."""
+        if self._save_after_id is not None:
+            self.root.after_cancel(self._save_after_id)
+        self._save_after_id = self.root.after(500, self._save_now)
+
+    def _save_now(self):
+        self._save_after_id = None
+        save_config(self.config)
 
 # Backward compatibility
 MouselyGUI = KursorGUI

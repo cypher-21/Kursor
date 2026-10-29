@@ -48,6 +48,9 @@ export const QuickControls: React.FC<QuickControlsProps> = ({
 }) => {
   const haptics = useHaptics();
   const [isPlaying, setIsPlaying] = useState(false);
+  // Trust receiver-reported state when available; `isPlaying` stays as an
+  // optimistic default for receivers that cannot detect playback (Windows).
+  const playing = status.playing ?? isPlaying;
   const [liveBuffer, setLiveBuffer] = useState('');
   const [isLiveActive, setIsLiveActive] = useState(false);
   const [bulkText, setBulkText] = useState('');
@@ -345,12 +348,12 @@ export const QuickControls: React.FC<QuickControlsProps> = ({
             className="media-play-btn"
             onClick={() => {
               haptics.success();
-              setIsPlaying(!isPlaying);
+              setIsPlaying(!playing);
               onMedia('play_pause');
             }}
             title="Play / Pause"
           >
-            {isPlaying ? <Pause size={22} /> : <Play size={22} style={{ marginLeft: '2px' }} />}
+            {playing ? <Pause size={22} /> : <Play size={22} style={{ marginLeft: '2px' }} />}
           </button>
 
           <button

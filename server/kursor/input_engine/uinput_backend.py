@@ -1,3 +1,4 @@
+import sys
 import time
 from typing import Optional
 from .base import InputBackend
@@ -8,6 +9,11 @@ try:
     HAVE_EVDEV = True
 except ImportError:
     HAVE_EVDEV = False
+
+if sys.platform.startswith("linux"):
+    from .raw_uinput import RawUInput
+else:  # pragma: no cover - raw backend is Linux-only
+    RawUInput = None  # type: ignore[assignment]
 
 KEY_MAP = {
     "page_down": "KEY_PAGEDOWN",
@@ -75,15 +81,47 @@ class UInputBackend(InputBackend):
         for key_code in range(e.KEY_Q, e.KEY_SLASH + 1):
             cap[e.EV_KEY].append(key_code)
 
+        # Shifted punctuation produced by the mobile keyboard ( e.g. ! @ # ? )
+        for extra_key in (
+            e.KEY_COMMA, e.KEY_DOT, e.KEY_MINUS, e.KEY_EQUAL, e.KEY_SEMICOLON,
+            e.KEY_APOSTROPHE, e.KEY_GRAVE, e.KEY_LEFTBRACE, e.KEY_RIGHTBRACE,
+            e.KEY_BACKSLASH, e.KEY_F4
+        ):
+            if extra_key is not None and extra_key not in cap[e.EV_KEY]:
+                cap[e.EV_KEY].append(extra_key)
+
+        # Function keys (F1-F12): needed for alt_f4 and other presenter combos
+        for fkey in ("KEY_F1", "KEY_F2", "KEY_F3", "KEY_F4", "KEY_F5",
+                     "KEY_F6", "KEY_F7", "KEY_F8", "KEY_F9", "KEY_F10",
+                     "KEY_F11", "KEY_F12"):
+            code = getattr(e, fkey, None)
+            if code is not None and code not in cap[e.EV_KEY]:
+                cap[e.EV_KEY].append(code)
+
         try:
             self.device = UInput(cap, name="Mousely Virtual Remote", version=0x1)
-            print("[UInputBackend] Successfully initialized /dev/uinput virtual input device")
-        except PermissionError:
-            raise PermissionError(
-                "Access to /dev/uinput denied. Run 'setup-uinput.sh' or add your user to 'input' group."
-            )
-        except Exception as exc:
-            raise RuntimeError(f"Failed to open /dev/uinput: {exc}")
+            print("[UInputBackend] Successfully initialized /dev/uinput virtual input device (evdev)")
+        except Exception as evdev_exc:
+            evdev_error = str(evdev_exc)
+            # python-evdev demands O_RDWR; many udev setups (MODE="0220") only grant
+            # write. The kernel only needs write access, so try the raw fallback.
+            raw = None
+            if RawUInput is not None:
+                try:
+                    rel = [getattr(e, n) for n in ("REL_X", "REL_Y", "REL_WHEEL", "REL_HWHEEL")]
+                    keys = list(dict.fromkeys(cap[e.EV_KEY]))
+                    raw = RawUInput("Mousely Virtual Remote", rel, keys)
+                    self.device = raw
+                    print("[UInputBackend] Successfully initialized /dev/uinput virtual input device (raw write-only mode)")
+                except Exception as raw_exc:
+                    raw_error = str(raw_exc)
+            self.device = raw  # None if raw fallback also failed
+            if raw is None:
+                if isinstance(evdev_exc, PermissionError) or "could not open" in evdev_error:
+                    raise PermissionError(
+                        "Access to /dev/uinput denied. Run 'setup-uinput.sh' or add your user to 'input' group."
+                    )
+                raise RuntimeError(f"Failed to open /dev/uinput: {evdev_error}")
 
         self.remainder_x = 0.0
         self.remainder_y = 0.0
@@ -215,29 +253,55 @@ class UInputBackend(InputBackend):
         else:
             print(f"[UInputBackend] Key not recognized: {key_name}")
 
+    # Chars typed without shift, and their shifted counterparts
+    _TEXT_KEYS = {
+        "1": "KEY_1", "2": "KEY_2", "3": "KEY_3", "4": "KEY_4", "5": "KEY_5",
+        "6": "KEY_6", "7": "KEY_7", "8": "KEY_8", "9": "KEY_9", "0": "KEY_0",
+        ",": "KEY_COMMA", ".": "KEY_DOT", "-": "KEY_MINUS", "=": "KEY_EQUAL",
+        ";": "KEY_SEMICOLON", "'": "KEY_APOSTROPHE", "`": "KEY_GRAVE",
+        "[": "KEY_LEFTBRACE", "]": "KEY_RIGHTBRACE", "\\": "KEY_BACKSLASH",
+        "/": "KEY_SLASH",
+        "!": "KEY_1", "@": "KEY_2", "#": "KEY_3", "$": "KEY_4", "%": "KEY_5",
+        "^": "KEY_6", "&": "KEY_7", "*": "KEY_8", "(": "KEY_9", ")": "KEY_0",
+        "_": "KEY_MINUS", "+": "KEY_EQUAL", ":": "KEY_SEMICOLON",
+        '"': "KEY_APOSTROPHE", "~": "KEY_GRAVE", "{": "KEY_LEFTBRACE",
+        "}": "KEY_RIGHTBRACE", "|": "KEY_BACKSLASH", "?": "KEY_SLASH",
+        "<": "KEY_COMMA", ">": "KEY_DOT",
+        "_SHIFT_REQUIRED_": "!@#$%^&*()_+{}|?:\"<>~",
+    }
+
     def type_text(self, text: str) -> None:
+        shift_chars = self._TEXT_KEYS["_SHIFT_REQUIRED_"]
         for char in text:
             if char == "\n":
                 self.press_key("enter")
+            elif char == "\t":
+                self.press_key("tab")
             elif char == " ":
                 self.press_key("space")
+            elif char.isascii() and char.isalpha():
+                # Letters A-Z / a-z (shift for capitals, bypasses host caps lock)
+                self._press_combo("KEY_" + char.upper(), shift=char.isupper())
+            elif char in self._TEXT_KEYS and char != "_SHIFT_REQUIRED_":
+                self._press_combo(self._TEXT_KEYS[char], shift=char in shift_chars)
             else:
-                key_code_name = f"KEY_{char.upper()}"
-                if hasattr(e, key_code_name):
-                    k = getattr(e, key_code_name)
-                    # Check if shift is needed for uppercase
-                    shift = char.isupper()
-                    if shift:
-                        self.device.write(e.EV_KEY, e.KEY_LEFTSHIFT, 1)
-                        self.device.syn()
-                    self.device.write(e.EV_KEY, k, 1)
-                    self.device.syn()
-                    time.sleep(0.01)
-                    self.device.write(e.EV_KEY, k, 0)
-                    self.device.syn()
-                    if shift:
-                        self.device.write(e.EV_KEY, e.KEY_LEFTSHIFT, 0)
-                        self.device.syn()
+                print(f"[UInputBackend] Character not typed (unsupported): {char!r}")
+
+    def _press_combo(self, key_code_name: str, shift: bool = False) -> None:
+        if not hasattr(e, key_code_name):
+            return
+        k = getattr(e, key_code_name)
+        if shift:
+            self.device.write(e.EV_KEY, e.KEY_LEFTSHIFT, 1)
+            self.device.syn()
+        self.device.write(e.EV_KEY, k, 1)
+        self.device.syn()
+        time.sleep(0.01)
+        self.device.write(e.EV_KEY, k, 0)
+        self.device.syn()
+        if shift:
+            self.device.write(e.EV_KEY, e.KEY_LEFTSHIFT, 0)
+            self.device.syn()
 
     def gesture(self, action: str) -> None:
         if action == "overview":

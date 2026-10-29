@@ -6,21 +6,20 @@ import {
   Pause,
   RotateCcw,
   Maximize2,
-  Crosshair,
-  Compass,
-  Sparkles,
+  Moon,
+  Sun,
+  X,
+  MousePointer2,
 } from 'lucide-react';
 import { useHaptics } from '../hooks/useHaptics';
-import { useOrientation } from '../hooks/useOrientation';
 
 interface PresenterProps {
   onAction: (action: 'next' | 'prev' | 'start' | 'exit' | 'black' | 'white') => void;
-  onLaser: (active: boolean, x?: number, y?: number, mode?: string) => void;
   onMove: (dx: number, dy: number) => void;
   onClick?: (button?: 'left' | 'right' | 'middle', state?: 'click' | 'down' | 'up') => void;
 }
 
-export const Presenter: React.FC<PresenterProps> = ({ onAction, onLaser, onMove, onClick }) => {
+export const Presenter: React.FC<PresenterProps> = ({ onAction, onMove, onClick }) => {
   const haptics = useHaptics();
 
   // Timer State
@@ -43,32 +42,28 @@ export const Presenter: React.FC<PresenterProps> = ({ onAction, onLaser, onMove,
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 
-  // Laser Pointer State
-  const [laserActive, setLaserActive] = useState(false);
-  const [laserMode, setLaserMode] = useState<'laser' | 'spotlight'>('laser');
-  const [gyroActive, setGyroActive] = useState(false);
-
   const pointerPadRef = useRef<HTMLDivElement>(null);
   const prevTouchRef = useRef<{ x: number; y: number } | null>(null);
-  const touchStartRef = useRef<{ x: number; y: number; time: number }>({ x: 0, y: 0, time: 0 });
+  const touchStartRef = useRef<{ x: number, y: number, time: number }>({ x: 0, y: 0, time: 0 });
 
-  // Handle Gyro air-mouse: sends RELATIVE move deltas to move the host cursor
-  const { requestPermission } = useOrientation(gyroActive, (dx, dy) => {
-    onMove(dx, dy);
-  });
+  // Tap-and-drag state (mirrors the trackpad surface: tap-click, then hold-drag)
+  const dragArmedRef = useRef(false);
+  const draggingRef = useRef(false);
+  const dragTimerRef = useRef<any>(null);
 
-  const toggleLaser = async () => {
-    const next = !laserActive;
-    setLaserActive(next);
-    haptics.heavy();
-    onLaser(next, undefined, undefined, laserMode);
-  };
-
-  // Pointer Pad touch handlers - acts like a mouse trackpad so user can "use it like a mouse"
   const handlePointerTouchStart = (e: React.TouchEvent<HTMLDivElement>) => {
     e.preventDefault();
     const touch = e.touches[0];
     if (!touch) return;
+
+    if (dragArmedRef.current) {
+      // Tap-and-a-half engaged: button is held down, this stroke drags
+      clearTimeout(dragTimerRef.current);
+      dragArmedRef.current = false;
+      draggingRef.current = true;
+      haptics.heavy();
+    }
+
     prevTouchRef.current = { x: touch.clientX, y: touch.clientY };
     touchStartRef.current = { x: touch.clientX, y: touch.clientY, time: Date.now() };
   };
@@ -76,10 +71,12 @@ export const Presenter: React.FC<PresenterProps> = ({ onAction, onLaser, onMove,
   const handlePointerTouchMove = (e: React.TouchEvent<HTMLDivElement>) => {
     e.preventDefault();
     const touch = e.touches[0];
-    if (!touch || !prevTouchRef.current) return;
+    if (!touch) return;
 
-    const dx = (touch.clientX - prevTouchRef.current.x) * 1.3;
-    const dy = (touch.clientY - prevTouchRef.current.y) * 1.3;
+    const prev = prevTouchRef.current;
+    if (!draggingRef.current && !prev) return;
+    const dx = (touch.clientX - (prev ? prev.x : touch.clientX)) * 1.3;
+    const dy = (touch.clientY - (prev ? prev.y : touch.clientY)) * 1.3;
     prevTouchRef.current = { x: touch.clientX, y: touch.clientY };
 
     onMove(dx, dy);
@@ -87,15 +84,52 @@ export const Presenter: React.FC<PresenterProps> = ({ onAction, onLaser, onMove,
 
   const handlePointerTouchEnd = (e: React.TouchEvent<HTMLDivElement>) => {
     e.preventDefault();
+
+    if (draggingRef.current) {
+      // End of selection stroke: release the held button
+      draggingRef.current = false;
+      haptics.click();
+      if (onClick) onClick('left', 'up');
+      prevTouchRef.current = null;
+      return;
+    }
+
+    if (dragArmedRef.current) {
+      // Simple tap completed: release the pending button press -> normal click
+      dragArmedRef.current = false;
+      if (dragTimerRef.current) {
+        clearTimeout(dragTimerRef.current);
+        dragTimerRef.current = null;
+      }
+      if (onClick) onClick('left', 'up');
+      prevTouchRef.current = null;
+      return;
+    }
+
     prevTouchRef.current = null;
     const touchDuration = Date.now() - touchStartRef.current.time;
 
-    // Quick tap = Left Click (advance slide or click link)
+    // Quick tap = arm a press-and-hold (tap AND a half supports drag/select)
     if (touchDuration < 250 && onClick) {
       haptics.click();
-      onClick('left', 'click');
+      onClick('left', 'down');
+      dragArmedRef.current = true;
+      if (dragTimerRef.current) clearTimeout(dragTimerRef.current);
+      dragTimerRef.current = setTimeout(() => {
+        // No follow-up stroke: release button -> single click
+        dragArmedRef.current = false;
+        dragTimerRef.current = null;
+        if (onClick) onClick('left', 'up');
+      }, 320);
     }
   };
+
+  // Cleanup (trailing press when component unmounts)
+  useEffect(() => {
+    return () => {
+      if (dragTimerRef.current) clearTimeout(dragTimerRef.current);
+    };
+  }, []);
 
   return (
     <div className="presenter-container">
@@ -166,75 +200,28 @@ export const Presenter: React.FC<PresenterProps> = ({ onAction, onLaser, onMove,
         </button>
       </div>
 
-      {/* Large Digital Pointer / Mouse Touch Area (flex: 1 dominant) */}
+      {/* Pointer Pad (flex: 1 dominant) - ALWAYS controls the mouse cursor */}
       <div
         ref={pointerPadRef}
-        className={`laser-pad expanded ${laserActive ? 'active' : ''}`}
+        className="presenter-pad expanded"
         onTouchStart={handlePointerTouchStart}
         onTouchMove={handlePointerTouchMove}
         onTouchEnd={handlePointerTouchEnd}
         onTouchCancel={handlePointerTouchEnd}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <Crosshair size={20} color={laserActive ? '#ffffff' : 'var(--text-muted)'} />
-          <span className="laser-pad-label" style={{ fontSize: '0.96rem' }}>
-            {laserActive
-              ? (gyroActive ? 'Air-Mouse Active (Tilt Phone or Drag)' : 'Digital Pointer Active (Drag to Aim)')
-              : (gyroActive ? 'Air-Mouse Active (Tilt to Steer Mouse)' : 'Touch to Aim Pointer & Mouse')}
+          <MousePointer2 size={20} color="var(--text-muted)" />
+          <span className="presenter-pad-label" style={{ fontSize: '0.96rem' }}>
+            Pointer Pad
           </span>
         </div>
-        <span className="laser-pad-hint">
-          {laserActive
-            ? 'Glowing beam visible on presentation display • Tap to click'
-            : 'Swipe anywhere to move cursor • Tap Pointer ON below for glow beam'}
+        <span className="presenter-pad-hint">
+          Swipe to move the cursor • Quick tap = click • Tap, then tap-and-hold to drag (select text)
         </span>
       </div>
 
-      {/* Secondary Presentation Tools */}
+      {/* PowerPoint-style Quick Keys */}
       <div className="presentation-quick-tools">
-        <button
-          className={`tool-btn ${laserActive ? 'active' : ''}`}
-          onClick={toggleLaser}
-        >
-          <Crosshair size={16} />
-          <span>{laserActive ? 'Pointer ON' : 'Pointer'}</span>
-        </button>
-
-        <button
-          className={`tool-btn ${laserMode === 'spotlight' ? 'active' : ''}`}
-          onClick={() => {
-            const next = laserMode === 'laser' ? 'spotlight' : 'laser';
-            setLaserMode(next);
-            haptics.click();
-            if (laserActive) {
-              onLaser(true, undefined, undefined, next);
-            }
-          }}
-          title="Switch Pointer Style"
-        >
-          <Sparkles size={16} />
-          <span>{laserMode === 'spotlight' ? 'Spotlight' : 'Dot'}</span>
-        </button>
-
-        <button
-          className={`tool-btn ${gyroActive ? 'active' : ''}`}
-          onClick={async () => {
-            const res = await requestPermission();
-            if (res) {
-              const next = !gyroActive;
-              setGyroActive(next);
-              haptics.click();
-              if (next && !laserActive) {
-                // Also turn on pointer when air mouse is activated for visual feedback
-                toggleLaser();
-              }
-            }
-          }}
-        >
-          <Compass size={16} />
-          <span>Air-Mouse</span>
-        </button>
-
         <button
           className="tool-btn"
           onClick={() => {
@@ -245,6 +232,42 @@ export const Presenter: React.FC<PresenterProps> = ({ onAction, onLaser, onMove,
         >
           <Maximize2 size={16} />
           <span>F5 Start</span>
+        </button>
+
+        <button
+          className="tool-btn"
+          onClick={() => {
+            haptics.click();
+            onAction('black');
+          }}
+          title="Blank Screen (B)"
+        >
+          <Moon size={16} />
+          <span>Black (B)</span>
+        </button>
+
+        <button
+          className="tool-btn"
+          onClick={() => {
+            haptics.click();
+            onAction('white');
+          }}
+          title="White Screen (W)"
+        >
+          <Sun size={16} />
+          <span>White (W)</span>
+        </button>
+
+        <button
+          className="tool-btn"
+          onClick={() => {
+            haptics.click();
+            onAction('exit');
+          }}
+          title="Exit Presentation (Esc)"
+        >
+          <X size={16} />
+          <span>Exit (Esc)</span>
         </button>
       </div>
     </div>

@@ -5,6 +5,8 @@ import os
 import sys
 from typing import List
 
+from . import __version__
+
 def get_local_ips() -> List[str]:
     """Retrieve all non-loopback IPv4 addresses of this machine."""
     ips = []
@@ -77,7 +79,7 @@ class DiscoveryService:
                 "ips": ips,
                 "port": self.http_port,
                 "os": platform_os,
-                "version": "1.0.0"
+                "version": __version__
             }).encode("utf-8")
 
             try:

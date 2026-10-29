@@ -6,6 +6,8 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
+    "sync": "node scripts/sync-static.mjs",
+    "build:desktop": "npm run build && npm run sync",
     "lint": "oxlint",
     "preview": "vite preview"
   },

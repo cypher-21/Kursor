@@ -5,6 +5,7 @@ from .uinput_backend import UInputBackend, HAVE_EVDEV
 from .ydotool_backend import YdotoolBackend
 from .x11_backend import X11Backend, HAVE_PYNPUT
 
+
 def create_input_backend(preference: str = "auto") -> InputBackend:
     """
     Instantiate the best available input backend.
@@ -45,6 +46,16 @@ def create_input_backend(preference: str = "auto") -> InputBackend:
             return X11Backend()
         except Exception as e:
             print(f"[InputEngine] Note: pynput failed: {e}")
+
+    if is_wayland:
+        print(
+            "[InputEngine] ERROR: Wayland desktop detected but no Wayland-capable input driver is active.\n"
+            "              Mouse input will be dropped. Fix with one of:\n"
+            "                1. Install python-evdev (pip install evdev) so the uinput backend works\n"
+            "                2. Run server/setup-uinput.sh for non-root /dev/uinput permissions\n"
+            "                3. Install ydotool (package manager) and start 'ydotoold'\n"
+            "                4. Log into an X11 session instead of Wayland"
+        )
 
     # Fallback dummy backend for testing
     print("[InputEngine] Warning: No functional input driver found. Running in MOCK mode.")

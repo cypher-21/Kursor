@@ -5,6 +5,7 @@ import { Trackpad } from './components/Trackpad';
 import { Presenter } from './components/Presenter';
 import { QuickControls } from './components/QuickControls';
 import { ConnectionModal } from './components/ConnectionModal';
+import { PinModal } from './components/PinModal';
 import { SettingsModal } from './components/SettingsModal';
 import { useSocket } from './hooks/useSocket';
 import { useHaptics } from './hooks/useHaptics';
@@ -121,6 +122,7 @@ export function App() {
         serverName={socket.serverName}
         latency={socket.latency}
         status={socket.systemStatus}
+        reconnecting={socket.reconnecting}
         onOpenConnect={() => setShowConnectModal(true)}
         onOpenSettings={() => setShowSettingsModal(true)}
         isFullscreen={isBrowserFullscreen}
@@ -180,7 +182,6 @@ export function App() {
         {activeTab === 'presenter' && (
           <Presenter
             onAction={socket.sendPresenter}
-            onLaser={socket.sendLaser}
             onMove={socket.sendMove}
             onClick={socket.sendClick}
           />
@@ -201,6 +202,13 @@ export function App() {
       </main>
 
       {/* Modals */}
+      <PinModal
+        isOpen={socket.needsAuth}
+        serverName={socket.serverName}
+        attemptsRemaining={socket.authError}
+        onSubmitPin={socket.sendAuth}
+      />
+
       <ConnectionModal
         isOpen={showConnectModal}
         onClose={() => setShowConnectModal(false)}

@@ -1,4 +1,4 @@
-import React, { useRef, useState, useCallback } from 'react';
+import React, { useRef, useState, useCallback, useEffect } from 'react';
 import { MousePointer2, ArrowUpDown } from 'lucide-react';
 import { useHaptics } from '../hooks/useHaptics';
 
@@ -34,6 +34,17 @@ export const Trackpad: React.FC<TrackpadProps> = ({
   const [isTouching, setIsTouching] = useState(false);
   const [ripples, setRipples] = useState<TouchRipple[]>([]);
   const [activeButton, setActiveButton] = useState<string | null>(null);
+
+  // Tap-and-drag ("tap and a half") state, mirrors real trackpads:
+  // tap -> button pressed (pending release); second touch -> drag; release -> up
+  const dragArmedRef = useRef<boolean>(false);
+  const draggingRef = useRef<boolean>(false);
+  const dragTimerRef = useRef<any>(null);
+
+  // On unmount, discard a pending press timer (input would already be gone)
+  useEffect(() => () => {
+    if (dragTimerRef.current) clearTimeout(dragTimerRef.current);
+  }, []);
 
   // Refs for tracking touch dynamics
   const touchStartPosRef = useRef<{ x: number; y: number; time: number; count: number }>({
@@ -72,6 +83,22 @@ export const Trackpad: React.FC<TrackpadProps> = ({
       time: Date.now(),
       count: e.touches.length,
     };
+
+    // Pending drag handling (tap and a half):
+    //  * one new touch  -> engage drag (button already pressed)
+    //  * two new touches-> user meant a right-click tap: cancel pending left press
+    if (dragArmedRef.current) {
+      clearTimeout(dragTimerRef.current);
+      dragTimerRef.current = null;
+      if (e.touches.length >= 2) {
+        dragArmedRef.current = false;
+        onClick('left', 'up');
+      } else {
+        dragArmedRef.current = false;
+        draggingRef.current = true;
+        haptics.heavy();
+      }
+    }
 
     // Add visual ripples for touches
     if (surfaceRef.current) {
@@ -146,6 +173,25 @@ export const Trackpad: React.FC<TrackpadProps> = ({
     e.preventDefault();
     setIsTouching(false);
 
+    // Release an in-progress drag stroke
+    if (draggingRef.current) {
+      draggingRef.current = false;
+      onClick('left', 'up');
+      haptics.click();
+      return;
+    }
+
+    // A pending press with no follow-up stroke becomes a normal click
+    if (dragArmedRef.current) {
+      dragArmedRef.current = false;
+      if (dragTimerRef.current) {
+        clearTimeout(dragTimerRef.current);
+        dragTimerRef.current = null;
+      }
+      onClick('left', 'up');
+      return;
+    }
+
     const touchDuration = Date.now() - touchStartPosRef.current.time;
     const travel = totalTravelRef.current;
     const count = touchStartPosRef.current.count;
@@ -153,11 +199,19 @@ export const Trackpad: React.FC<TrackpadProps> = ({
     // Detect tap: low travel and short duration
     if (travel < 15 && touchDuration < 280 && !swipeHandledRef.current) {
       if (count === 1) {
-        // 1-finger tap = Left Click
+        // 1-finger tap = LEFT button down (pending). Auto-release ~300ms later
+        // (a plain click) unless a new stroke starts first (= tap-drag).
         haptics.click();
-        onClick('left', 'click');
+        onClick('left', 'down');
+        dragArmedRef.current = true;
+        if (dragTimerRef.current) clearTimeout(dragTimerRef.current);
+        dragTimerRef.current = setTimeout(() => {
+          dragArmedRef.current = false;
+          dragTimerRef.current = null;
+          onClick('left', 'up');
+        }, 320);
       } else if (count === 2) {
-        // 2-finger tap = Right Click
+        // 2-finger tap = Right Click (immediate)
         haptics.click();
         onClick('right', 'click');
       }

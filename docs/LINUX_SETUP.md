@@ -45,6 +45,13 @@ This script:
 > [!NOTE]
 > If you were just added to the `input` group, log out and log back in (or run `newgrp input`) for group changes to take effect.
 
+> [!TIP]
+> **Permissions not applied?** Kursor now ships a fallback uinput driver that opens
+> `/dev/uinput` write-only (`O_WRONLY`), which the kernel accepts, so it works even on
+> udev setups granting only group-*write* access (e.g. `MODE="0220"`). If the log shows
+> `(raw write-only mode)` instead of `(evdev)`, the fallback is active and no root/udev
+> changes are required.
+
 ---
 
 ## 3. Running the Receiver
@@ -106,6 +113,5 @@ journalctl --user -u kursor -f
 | Real-time live keyboard | Supported | Supported |
 | Presentation keys (F5, Esc, PageDown) | Supported | Supported |
 | Desktop gestures (Overview, Show Desktop) | Supported (Super, Super+D) | Supported |
-| Digital laser pointer overlay | Supported | Supported |
 | Volume & Media keys | Supported (`pactl` & `playerctl`) | Supported (`pactl` & `playerctl`) |
 | Lock screen control | Supported | Supported |
